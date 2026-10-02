@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InternConnect - Task Details</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="theme.js"></script>
+</head>
+
+<!-- Color Scheme -->
+<body class="bg-slate-100 text-slate-800">
+
+<div class="flex min-h-screen">
+
+    <!-- Mobile Burger Button -->
+    <button id="mobileToggle" class="lg:hidden fixed top-3 left-3 z-50 bg-slate-900 text-white w-9 h-9 rounded-md flex items-center justify-center shadow-lg">
+        <i class="fa-solid fa-bars"></i>
+    </button>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed lg:sticky top-0 left-0 h-screen w-64 bg-slate-900 text-slate-300 flex flex-col z-40 -translate-x-full lg:translate-x-0">
+
+        <!-- Brand Row -->
+        <div class="brand-row flex items-center gap-2.5 px-5 py-5 border-b border-white/10">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center text-white flex-shrink-0">
+                <i class="fa-solid fa-link text-sm"></i>
+            </div>
+            <div class="sidebar-text min-w-0">
+                <div class="text-white font-bold text-[15px] leading-tight">InternConnect</div>
+                <div class="text-[10.5px] text-slate-400 tracking-wide">AI-Powered Internship Monitoring Platform</div>
+            </div>
+            <button id="collapseBtn" class="hidden lg:flex ml-auto w-6 h-6 rounded-md items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition flex-shrink-0">
+                <i class="fa-solid fa-angles-left text-[11px] transition-transform"></i>
+            </button>
+            <button id="mobileCloseBtn" class="lg:hidden ml-auto w-8 h-8 rounded-md flex items-center justify-center text-slate-300 hover:bg-white/10 hover:text-white transition flex-shrink-0">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="px-5 pt-4 pb-3 group-label">
+            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Coordinator Portal</div>
+        </div>
+
+        <nav class="flex-1 px-2 space-y-0.5">
+        <button data-tab="overview" class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Overview">
+            <i class="fa-solid fa-gauge-high w-4 text-center"></i> <span class="sidebar-text">Overview</span>
+        </button>
+
+        <button data-tab="waitingroom" class="nav-link w-full flex items-center justify-between px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Waiting Room">
+            <span class="flex items-center"><i class="fa-solid fa-door-open w-4 text-center mr-3"></i><span class="sidebar-text">Waiting Room</span></span>
+            <span id="waitingBadge" class="sidebar-text bg-sky-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">5</span>
+        </button>
+
+        <button data-tab="classwork" class="nav-link active w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Classwork">
+            <i class="fa-solid fa-clipboard-list w-4 text-center"></i> <span class="sidebar-text">Classwork and Tasks</span>
+        </button>
+
+        <button data-tab="attendance" class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Attendance & Progress">
+            <i class="fa-solid fa-user-clock w-4 text-center"></i> <span class="sidebar-text">Attendance & Progress</span>
+        </button>
+
+        <button data-tab="approvals" class="nav-link w-full flex items-center justify-between px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Report Approvals">
+            <span class="flex items-center"><i class="fa-solid fa-clipboard-check w-4 text-center mr-3"></i><span class="sidebar-text">Report Approvals</span></span>
+        </button>
+
+        <button data-tab="partners" class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Partner & MOA Directory">
+            <i class="fa-solid fa-handshake w-4 text-center"></i> <span class="sidebar-text">Partner & MOA Directory</span>
+        </button>
+
+        <button data-tab="audit" class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Audit Trail & Security">
+            <i class="fa-solid fa-shield-halved w-4 text-center"></i> <span class="sidebar-text">Audit Trail & Security</span>
+        </button>
+
+            <div class="group-label text-[10px] uppercase tracking-wider text-slate-500 font-semibold px-4 pt-4 pb-1">Session</div>
+
+            <button data-tab="logout" class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Logout">
+                <i class="fa-solid fa-right-to-bracket w-4 text-center"></i> <span class="sidebar-text">Logout</span>
+            </button>
+        </nav>
+
+        <!-- Sidebar Profile -->
+        <div class="px-5 py-4 border-t border-white/10 flex items-center gap-3">
+            <div data-user="avatar" class="overflow-hidden w-8 h-8 rounded-full bg-sky-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">JD</div>
+            <div class="sidebar-text min-w-0 flex-1">
+                <div data-user="name" class="text-white text-[12.5px] font-medium truncate">Prof. Juan Dela Cruz</div>
+                <div data-user="role" class="text-[10.5px] text-slate-400 truncate">BSCS OJT Coordinator</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Sidebar Overlay (Mobile) -->
+    <div id="overlay" class="hidden fixed inset-0 bg-black/40 z-30 lg:hidden"></div>
+
+    <!-- Main -->
+    <div class="flex-1 flex flex-col min-w-0">
+
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 px-5 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-20">
+
+            <!-- Program and Class Code -->
+            <div class="flex items-center gap-3 pl-9 lg:pl-0 flex-wrap">
+                <span class="text-slate-900 font-bold text-[15px]">InternConnect</span>
+                <button id="copyClassCodeBtn" class="hidden sm:inline-flex items-center gap-1.5 bg-sky-50 border border-sky-200 text-sky-700 text-[11px] font-semibold px-2.5 py-1 rounded-full hover:bg-sky-100 transition">
+                    <i class="fa-solid fa-hashtag text-[10px]"></i> Class Code: <span data-user="classcode">GGFKEZ</span> <i class="fa-regular fa-copy text-[10px] ml-0.5"></i>
+                </button>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap">
+
+                <!-- Notifications -->
+                <div class="relative">
+                    <button id="notifBtn" class="relative w-9 h-9 rounded-md flex items-center justify-center text-slate-500 hover:bg-slate-100 transition">
+                        <i class="fa-regular fa-bell"></i>
+                        <span class="absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+                    </button>
+                    <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-lg z-30 overflow-hidden">
+                        <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                            <span class="font-semibold text-slate-900 text-sm">Notifications</span>
+                            <span class="text-[11px] text-sky-600 font-medium cursor-pointer">Mark all read</span>
+                        </div>
+                        <div class="max-h-72 overflow-y-auto divide-y divide-slate-100">
+                            <div class="px-4 py-3 flex gap-3 hover:bg-slate-50">
+                                <div class="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-triangle-exclamation text-[11px]"></i></div>
+                                <div class="min-w-0">
+                                    <div class="text-[12.5px] text-slate-700">Jomari D. is now <strong>at-risk</strong> — 3 missed daily logs.</div>
+                                    <div class="text-[10.5px] text-slate-400 mt-0.5">10 minutes ago</div>
+                                </div>
+                            </div>
+                            <div class="px-4 py-3 flex gap-3 hover:bg-slate-50">
+                                <div class="w-8 h-8 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-file-lines text-[11px]"></i></div>
+                                <div class="min-w-0">
+                                    <div class="text-[12.5px] text-slate-700">8 new daily logs waiting for your approval.</div>
+                                    <div class="text-[10.5px] text-slate-400 mt-0.5">1 hour ago</div>
+                                </div>
+                            </div>
+                            <div class="px-4 py-3 flex gap-3 hover:bg-slate-50 opacity-60">
+                                <div class="w-8 h-8 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-file-contract text-[11px]"></i></div>
+                                <div class="min-w-0">
+                                    <div class="text-[12.5px] text-slate-700">Verano Digital Studio's MOA expires in 45 days.</div>
+                                    <div class="text-[10.5px] text-slate-400 mt-0.5">Yesterday</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="px-4 py-2.5 text-center border-t border-slate-100">
+                            <span class="text-[11.5px] text-slate-500 hover:text-slate-700 cursor-pointer">View all notifications</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Header Profile -->
+                <div class="flex items-center gap-2 ml-1">
+                    <div data-user="avatar" class="overflow-hidden w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-xs font-semibold">JD</div>
+                    <div class="hidden lg:block">
+                        <div data-user="name" class="text-[12.5px] font-medium text-slate-900 leading-tight">Prof. Juan Dela Cruz</div>
+                        <div data-user="school" class="text-[10.5px] text-slate-500 leading-tight">PHINMA SJCDC</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-1 px-5 lg:px-8 py-6 pb-24">
+
+            <!-- Task Detail (Split View) -->
+      <section id="tab-taskdetail" class="space-y-4">
+        <!-- Back Button -->
+        <button id="backToClassworkBtn" class="text-[12.5px] text-slate-500 hover:text-slate-700"><i class="fa-solid fa-arrow-left mr-1.5"></i>Back to Classwork</button>
+
+        <!-- Task Info -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h1 id="taskDetailTitle" class="text-lg font-bold text-slate-900">Week 5 Accomplishment Report</h1>
+              <p id="taskDetailInstructions" class="text-[12.5px] text-slate-500 mt-1">Submit your weekly summary covering Sept 15–19. Include hours rendered and key tasks completed.</p>
+              <div class="flex items-center gap-3 mt-2 text-[11.5px] text-slate-400 flex-wrap">
+                <span id="taskDetailDue"><i class="fa-regular fa-calendar mr-1"></i>Due Sept 19, 11:59 PM</span>
+                <span id="taskDetailAttachment"><i class="fa-solid fa-paperclip mr-1"></i><a href="#" class="text-sky-600 hover:underline">Week5_Report_Template.docx</a></span>
+              </div>
+            </div>
+            <span id="taskDetailCount" class="text-[11px] font-semibold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-200 flex-shrink-0">62 / 85 Turned In</span>
+          </div>
+        </div>
+
+        <!-- Split View -->
+        <div class="grid lg:grid-cols-[280px_1fr] gap-4">
+          <!-- Submissions list -->
+          <div id="taskSubmissionsList" class="bg-white rounded-xl border border-slate-200 shadow-sm p-2 space-y-1.5 h-fit"></div>
+
+          <!-- Submission detail -->
+          <div id="taskSubmissionDetailWrap" class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <div id="subDetailName" class="font-semibold text-slate-900">Aiyu T.</div>
+                <div id="subDetailMeta" class="text-[11.5px] text-slate-400">Sept 15, 2026 · 8 hours claimed · Brightpath Software</div>
+              </div>
+              <span id="subDetailStatus" class="text-[11px] font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">Pending Review</span>
+            </div>
+
+            <!-- Raw Accomplishment Report -->
+            <div class="mb-5">
+              <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Accomplishment Report</div>
+              <pre id="subDetailRaw" class="bg-slate-50 border border-slate-100 rounded-lg p-3.5 text-[13px] text-slate-700 whitespace-pre-wrap font-sans" style="tab-size:4;">Tinulungan ko si Sir mag-fix ng database migration script.
+
+	- Tinest ang user API endpoints
+	- Nag-ayos ng minor bugs sa login flow
+	- Nag-attend ng stand-up meeting kasama ang team</pre>
+            </div>
+
+            <!-- AI-Converted Resume Bullet -->
+            <div class="mb-5">
+              <div class="text-[11px] font-semibold text-sky-600 uppercase tracking-wide mb-1.5 flex items-center gap-1.5"><i class="fa-solid fa-wand-magic-sparkles"></i> AI-Converted Resume Bullet</div>
+              <div id="subDetailBullet" class="bg-sky-50 border border-sky-100 rounded-lg p-3.5 text-[13px] text-slate-700">
+                Assisted in database migration and performed API unit testing under supervisor guidance.
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap items-center gap-2.5 pt-4 border-t border-slate-100">
+              <button id="td-approveBtn" class="text-[12.5px] font-semibold text-white bg-emerald-500 hover:bg-emerald-600 px-3.5 py-2 rounded-md transition"><i class="fa-solid fa-check mr-1.5"></i>Approve & Push to Verified Resume</button>
+              <button id="td-reviseBtn" class="text-[12.5px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-3.5 py-2 rounded-md transition"><i class="fa-solid fa-rotate-left mr-1.5"></i>Request Revision</button>
+              <button id="td-rejectBtn" class="text-[12.5px] font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 px-3.5 py-2 rounded-md transition"><i class="fa-solid fa-xmark mr-1.5"></i>Reject Log</button>
+              <span class="flex-1"></span>
+              <button id="td-genPdfBtn" class="text-[12px] font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 px-3 py-2 rounded-md transition"><i class="fa-solid fa-file-pdf mr-1.5 text-red-500"></i>Generate PDF</button>
+              <button id="td-genWordBtn" class="text-[12px] font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 px-3 py-2 rounded-md transition"><i class="fa-solid fa-file-word mr-1.5 text-sky-600"></i>Generate Word</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+        </main>
+
+        <!-- Footer -->
+        <footer id="mainFooter" class="fixed bottom-0 left-0 right-0 bg-slate-900 text-slate-300 text-[11px] text-center py-2 px-4 z-20">
+            RA 10173 Data Privacy Act Compliant &nbsp;
+        </footer>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer"></div>
+
+<script src="script.js"></script>
+</body>
+</html>

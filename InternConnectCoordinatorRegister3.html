@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InternConnect - Sign Up (3 of 3)</title>
+    <script src="theme.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body data-role="coordinator" class="bg-slate-100 text-slate-800">
+
+<!-- Register Step 3 -->
+<section id="tab-register3" class="bg-white">
+    <div class="flex min-h-screen">
+
+        <!-- Branding Panel -->
+        <div id="regBrandPanel" class="brand-panel hidden lg:flex flex-1 text-white flex-col justify-between p-10 relative overflow-hidden">
+            <div class="glow-a absolute -top-20 -right-20 w-96 h-96 rounded-full blur-3xl"></div>
+            <div class="glow-b absolute bottom-0 left-0 w-64 h-64 rounded-full blur-3xl"></div>
+            <div class="flex items-center gap-2.5 relative">
+                <div><i class="fa-solid fa-link text-xl text-white"></i></div>
+                <span class="font-bold text-[16px]">InternConnect</span>
+            </div>
+            <div class="relative max-w-md">
+                <p class="text-2xl font-semibold leading-snug">Bridging Academic Experience and Industry Demands</p>
+                <p class="text-[12.5px] text-slate-400 mt-3">Built for educational institutions — students, OJT coordinators, and industry partners.</p>
+            </div>
+            <div class="text-[11px] text-slate-500 relative">© InternConnect — Undergraduate Thesis Prototype</div>
+        </div>
+
+        <!-- Form -->
+        <div class="flex-1 flex items-center justify-center p-6 lg:p-10 bg-white">
+            <div class="w-full max-w-sm">
+                <div class="flex items-center gap-2 mb-6 lg:hidden">
+                    <div class="text-sky-600"><i class="fa-solid fa-link text-xs"></i></div>
+                    <span class="font-bold text-slate-900">InternConnect</span>
+                </div>
+                <h2 class="text-xl font-bold text-slate-900">Sign up</h2>
+                <p class="text-[12.5px] text-slate-500 mt-1 mb-5">Sign up as an <span class="font-semibold text-slate-700">OJT Coordinator.</span></p>
+                <div class="space-y-3.5">
+                    <div>
+                        <label class="text-[12px] font-medium text-slate-600 block mb-1">School Theme</label>
+                        <div class="flex items-center justify-center gap-3 mt-3 mb-1">
+                            <button type="button" data-theme="emerald" aria-label="Green" class="theme-dot active w-11 h-11 rounded-full bg-emerald-700"></button>
+                            <button type="button" data-theme="rose" aria-label="Red" class="theme-dot w-11 h-11 rounded-full bg-red-900"></button>
+                            <button type="button" data-theme="sky" aria-label="Blue" class="theme-dot w-11 h-11 rounded-full bg-blue-950"></button>
+                        </div>
+                        <p id="themeChosenLabel" class="text-[11px] text-slate-400 text-center">Green selected</p>
+                    </div>
+                    <div>
+                        <label class="text-[12px] font-medium text-slate-600 block mb-1">Class Code <span class="text-red-500">*</span></label>
+                        <input id="regClassCode" type="text" placeholder="••••••••" class="w-full border border-slate-300 rounded-md px-3 py-2.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400">
+                    </div>
+                    <button id="generateCodeBtn" type="button" class="w-full bg-slate-900 hover:bg-slate-800 text-white text-[13.5px] font-semibold py-2.5 rounded-md transition">Generate a Code</button>
+                    <button id="enterDashboardBtn" type="button" class="w-full bg-slate-900 hover:bg-slate-800 text-white text-[13.5px] font-semibold py-2.5 rounded-md transition">Sign up</button>
+                    <div class="flex items-center justify-center gap-4 pt-2">
+                        <button id="regBack3" type="button" aria-label="Back" class="w-8 h-8 rounded-full bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center transition"><i class="fa-solid fa-arrow-left text-xs"></i></button>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Toast Container -->
+<div id="toastContainer"></div>
+
+<script src="script.js"></script>
+</body>
+</html>

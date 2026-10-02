@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InternConnect - Sign In</title>
+    <script src="theme.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<!-- Color Scheme -->
+<body class="bg-slate-100 text-slate-800">
+
+<!-- Login Screen -->
+<section id="tab-login" class="bg-slate-50">
+    <div class="flex min-h-screen">
+
+        <!-- Branding Panel -->
+        <div class="brand-panel hidden lg:flex flex-1 text-white flex-col justify-between p-10 relative overflow-hidden">
+            <div class="glow-a absolute -top-20 -right-20 w-72 h-72 rounded-full blur-3xl"></div>
+            <div class="glow-b absolute bottom-0 left-0 w-64 h-64 rounded-full blur-3xl"></div>
+            <div class="flex items-center gap-2.5 relative">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-link text-sm"></i>
+                </div>
+                <span class="font-bold text-[16px]">InternConnect</span>
+            </div>
+            <div class="relative max-w-md">
+                <p class="text-2xl font-semibold leading-snug">Bridging Academic Experience and Industry Demands</p>
+                <p class="text-[12.5px] text-slate-400 mt-3">Built for educational institutions — students, OJT coordinators, and industry partners.</p>
+            </div>
+            <div class="text-[11px] text-slate-500 relative">© InternConnect — Undergraduate Thesis Prototype</div>
+        </div>
+
+        <!-- Login Form -->
+        <div class="flex-1 flex items-center justify-center p-6 lg:p-10 bg-slate-50">
+            <div class="w-full max-w-sm">
+                <div class="flex items-center gap-2 mb-6 lg:hidden">
+                    <div class="text-sky-600">
+                        <i class="fa-solid fa-link text-xs"></i>
+                    </div>
+                    <span class="font-bold text-slate-900">InternConnect</span>
+                </div>
+
+                <h2 class="text-xl font-bold text-slate-900">Sign in</h2>
+                <p class="text-[12.5px] text-slate-500 mt-1 mb-5">Choose your account type to continue.</p>
+
+                <!-- Role Switcher -->
+                <div id="roleSwitcher" class="grid grid-cols-3 gap-1.5 bg-slate-200/70 rounded-lg p-1 mb-5">
+                    <button data-role="student" class="role-btn active text-[12px] font-semibold py-1.5 rounded-md transition">Student</button>
+                    <button data-role="coordinator" class="role-btn text-[12px] font-semibold py-1.5 rounded-md transition">Coordinator</button>
+                    <button data-role="partnercompany" class="role-btn text-[12px] font-semibold py-1.5 rounded-md transition">Partner Company</button>
+                </div>
+
+                <!-- Error Message -->
+                <div id="loginError" class="hidden items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-[12px] rounded-md px-3 py-2.5 mb-4">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span>Incorrect email or password. Please try again.</span>
+                </div>
+
+                <!-- Email and Password -->
+                <div class="space-y-3.5">
+                    <div>
+                        <label class="text-[12px] font-medium text-slate-600 block mb-1">School email</label>
+                        <input id="loginEmail" type="text" placeholder="you@sjc.edu.ph" class="w-full border border-slate-300 rounded-md px-3 py-2.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400">
+                    </div>
+                    <div>
+                        <label class="text-[12px] font-medium text-slate-600 block mb-1">Password</label>
+                        <input id="loginPassword" type="password" placeholder="••••••••" class="w-full border border-slate-300 rounded-md px-3 py-2.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400">
+                    </div>
+                    <div class="flex items-center justify-between text-[11.5px]">
+                        <label class="flex items-center gap-1.5 text-slate-500"><input type="checkbox" class="w-3.5 h-3.5 rounded border-slate-300"> Remember me</label>
+                        <span id="forgotPasswordLink" class="text-sky-600 font-medium cursor-pointer hover:underline">Forgot password?</span>
+                    </div>
+
+                    <!-- Buttons -->
+                    <button id="loginSubmitBtn" class="w-full bg-slate-900 hover:bg-slate-800 text-white text-[13.5px] font-semibold py-2.5 rounded-md transition">Continue as <span id="roleLabel">Student</span></button>
+                    <button id="goToRegisterLink" type="button" class="w-full bg-white hover:bg-slate-50 text-slate-900 text-[13.5px] font-semibold py-2.5 rounded-md transition border border-slate-300">Create an Account</button>
+                    <p class="text-[11px] text-slate-400 text-center pt-1">Tip: try any password to see the success state, or leave it blank to see the error state.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Toast Container -->
+<div id="toastContainer"></div>
+
+<script src="script.js"></script>
+</body>
+</html>

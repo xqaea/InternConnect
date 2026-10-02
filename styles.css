@@ -1,0 +1,109 @@
+/* Font */
+body{font-family:'Inter',system-ui,sans-serif;}
+
+/* Nav Links */
+.nav-link.active{background:rgba(255,255,255,0.08);border-left:3px solid var(--b600);color:#fff;}
+.nav-link{border-left:3px solid transparent;}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:4px;}
+
+/* Log Items (Approvals and Task Detail) */
+.log-item.selected{background:var(--b50);border-color:var(--b600);}
+
+/* Role Switcher (Login and Register) */
+.role-btn{color:#475569;}
+.role-btn.active{background:#fff;color:#0F172A;box-shadow:0 1px 3px rgba(0,0,0,0.12);}
+
+/* Waiting Room Sub Tabs */
+.subtab-btn{color:#475569;}
+.subtab-btn.active{background:var(--bd);color:#fff;}
+
+/* Sidebar Collapse */
+#sidebar{transition:width .2s ease, transform .2s ease;}
+#sidebar.collapsed{width:76px;}
+#sidebar.collapsed .sidebar-text{display:none;}
+#sidebar.collapsed .nav-link{justify-content:center;padding-left:0;padding-right:0;}
+#sidebar.collapsed .nav-link i{margin:0;}
+#sidebar.collapsed .brand-row{flex-direction:column;gap:10px;padding-top:16px;padding-bottom:16px;}
+#sidebar.collapsed #collapseBtn{margin-left:0;}
+#sidebar.collapsed #collapseBtn i{transform:rotate(180deg);}
+#sidebar.collapsed .group-label{display:none;}
+
+/* Footer */
+#mainFooter{transition:left .2s ease;}
+@media (min-width:1024px){
+  #mainFooter{left:256px;}
+  #mainFooter.collapsed{left:76px;}
+}
+
+/* Toast */
+#toastContainer{position:fixed;bottom:20px;right:20px;z-index:80;display:flex;flex-direction:column;gap:8px;}
+.toast{
+  display:flex;align-items:center;gap:10px;
+  background:#0F172A;color:#fff;font-size:12.5px;font-weight:500;
+  padding:11px 16px;border-radius:8px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.25);
+  min-width:240px;max-width:340px;
+  animation:toastIn .25s ease;
+}
+.toast.success{background:#166534;}
+.toast.warn{background:#92400E;}
+.toast.info{background:var(--bd);}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@keyframes toastOut{from{opacity:1;}to{opacity:0;transform:translateY(6px);}}
+.toast.out{animation:toastOut .2s ease forwards;}
+
+/* Register Theme Panels */
+.theme-panel-sky{background:linear-gradient(165deg,#0F172A,#0B1220);}
+.theme-panel-sky .glow-a{background:rgba(2,132,199,0.25);}
+.theme-panel-sky .glow-b{background:rgba(56,189,248,0.12);}
+.theme-panel-emerald{background:linear-gradient(165deg,#052e1f,#031a12);}
+.theme-panel-emerald .glow-a{background:rgba(16,185,129,0.28);}
+.theme-panel-emerald .glow-b{background:rgba(52,211,153,0.14);}
+.theme-panel-rose{background:linear-gradient(165deg,#3f0d10,#240608);}
+.theme-panel-rose .glow-a{background:rgba(225,29,72,0.28);}
+.theme-panel-rose .glow-b{background:rgba(251,113,133,0.14);}
+
+/* Register Code Digits */
+.code-digit:focus{outline:none;}
+/* Register Step 3 Theme Dots */
+.theme-dot{transition:transform .15s ease;}
+.theme-dot:hover{transform:scale(1.06);}
+.theme-dot.active{outline:2px solid #94A3B8;outline-offset:3px;}
+/* ============ THEME (colors follow the coordinator's chosen theme) ============
+   Dashboard pages keep using sky-* / slate-900 Tailwind classes; the rules below re-point them to the theme. */
+:root{--b50:#F0F9FF;--b100:#E0F2FE;--b200:#BAE6FD;--b300:#7DD3FC;--b400:#38BDF8;--b500:#0EA5E9;--b600:#0284C7;--b700:#0369A1;--bd:#0F172A;--bd8:#1E293B;--bdd:#0B1220;--glowA:rgba(2,132,199,0.25);--glowB:rgba(56,189,248,0.12);}
+html[data-theme="sky"]{--b50:#F0F9FF;--b100:#E0F2FE;--b200:#BAE6FD;--b300:#7DD3FC;--b400:#38BDF8;--b500:#0EA5E9;--b600:#0284C7;--b700:#0369A1;--bd:#0F172A;--bd8:#1E293B;--bdd:#0B1220;--glowA:rgba(2,132,199,0.25);--glowB:rgba(56,189,248,0.12);}
+html[data-theme="emerald"]{--b50:#ECFDF5;--b100:#D1FAE5;--b200:#A7F3D0;--b300:#6EE7B7;--b400:#34D399;--b500:#10B981;--b600:#059669;--b700:#047857;--bd:#052E1F;--bd8:#064E3B;--bdd:#031A12;--glowA:rgba(16,185,129,0.28);--glowB:rgba(52,211,153,0.14);}
+html[data-theme="rose"]{--b50:#FFF1F2;--b100:#FFE4E6;--b200:#FECDD3;--b300:#FDA4AF;--b400:#FB7185;--b500:#F43F5E;--b600:#E11D48;--b700:#BE123C;--bd:#3F0D10;--bd8:#5C1317;--bdd:#240608;--glowA:rgba(225,29,72,0.28);--glowB:rgba(251,113,133,0.14);}
+html[data-theme] .bg-sky-50{background-color:var(--b50)}
+html[data-theme] .bg-sky-100{background-color:var(--b100)}
+html[data-theme] .bg-sky-400{background-color:var(--b400)}
+html[data-theme] .bg-sky-500{background-color:var(--b500)}
+html[data-theme] .bg-sky-600{background-color:var(--b600)}
+html[data-theme] .bg-sky-700{background-color:var(--b700)}
+html[data-theme] .bg-slate-900{background-color:var(--bd)}
+html[data-theme] .bg-slate-800{background-color:var(--bd8)}
+html[data-theme] .text-sky-500{color:var(--b500)}
+html[data-theme] .text-sky-600{color:var(--b600)}
+html[data-theme] .text-sky-700{color:var(--b700)}
+html[data-theme] .border-sky-200{border-color:var(--b200)}
+html[data-theme] .border-sky-300{border-color:var(--b300)}
+html[data-theme] .border-sky-400{border-color:var(--b400)}
+html[data-theme] .border-sky-600{border-color:var(--b600)}
+html[data-theme] .ring-sky-300{--tw-ring-color:var(--b300)}
+html[data-theme] .ring-sky-400{--tw-ring-color:var(--b400)}
+html[data-theme] .hover\:bg-sky-50:hover{background-color:var(--b50)}
+html[data-theme] .hover\:bg-sky-100:hover{background-color:var(--b100)}
+html[data-theme] .hover\:bg-sky-700:hover{background-color:var(--b700)}
+html[data-theme] .hover\:bg-slate-800:hover{background-color:var(--bd8)}
+html[data-theme] .hover\:text-sky-700:hover{color:var(--b700)}
+html[data-theme] .focus\:ring-sky-400:focus{--tw-ring-color:var(--b400)}
+html[data-theme] .focus\:border-sky-400:focus{border-color:var(--b400)}
+
+/* Branding panel on Login / Register screens */
+.brand-panel{background:linear-gradient(165deg,var(--bd),var(--bdd));}
+.brand-panel .glow-a{background:var(--glowA);}
+.brand-panel .glow-b{background:var(--glowB);}

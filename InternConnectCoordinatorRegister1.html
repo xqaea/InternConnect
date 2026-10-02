@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InternConnect - Sign Up (1 of 3)</title>
+    <script src="theme.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body data-role="coordinator" class="bg-slate-100 text-slate-800">
+
+<!-- Register Step 1 -->
+<section id="tab-register1" class="bg-white">
+    <div class="flex min-h-screen">
+
+        <!-- Branding Panel -->
+        <div class="brand-panel hidden lg:flex flex-1 text-white flex-col justify-between p-10 relative overflow-hidden">
+            <div class="glow-a absolute -top-20 -right-20 w-72 h-72 rounded-full blur-3xl"></div>
+            <div class="glow-b absolute bottom-0 left-0 w-64 h-64 rounded-full blur-3xl"></div>
+            <div class="flex items-center gap-2.5 relative">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-link text-sm"></i>
+                </div>
+                <span class="font-bold text-[16px]">InternConnect</span>
+            </div>
+            <div class="relative max-w-md">
+                <p class="text-2xl font-semibold leading-snug">Bridging Academic Experience and Industry Demands</p>
+                <p class="text-[12.5px] text-slate-400 mt-3">Built for educational institutions — students, OJT coordinators, and industry partners.</p>
+            </div>
+            <div class="text-[11px] text-slate-500 relative">© InternConnect — Undergraduate Thesis Prototype</div>
+        </div>
+
+        <!-- Form -->
+        <div class="flex-1 flex items-center justify-center p-6 lg:p-10 bg-white">
+            <div class="w-full max-w-sm">
+                <div class="flex items-center gap-2 mb-6 lg:hidden">
+                    <div class="text-sky-600"><i class="fa-solid fa-link text-xs"></i></div>
+                    <span class="font-bold text-slate-900">InternConnect</span>
+                </div>
+                <h2 class="text-xl font-bold text-slate-900">Sign up</h2>
+                <p class="text-[12.5px] text-slate-500 mt-1 mb-5">Sign up as an <span class="font-semibold text-slate-700">OJT Coordinator.</span></p>
+                <div class="space-y-3.5">
+                    <div>
+                        <label class="text-[12px] font-medium text-slate-600 block mb-1">Add a Profile Picture</label>
+                        <label for="avatarInput" class="mx-auto mt-2 w-24 h-24 rounded-full border-2 border-dashed border-slate-300 bg-slate-100 hover:bg-slate-200/70 flex items-center justify-center overflow-hidden cursor-pointer transition">
+                            <img id="avatarPreview" class="hidden w-full h-full object-cover" alt="Profile preview">
+                            <i id="avatarIcon" class="fa-solid fa-camera text-slate-400"></i>
+                        </label>
+                        <input id="avatarInput" type="file" accept="image/*" class="hidden">
+                    </div>
+                    <div>
+                        <label class="text-[12px] font-medium text-slate-600 block mb-1">First Name <span class="text-red-500">*</span></label>
+                        <input id="regFirstName" type="text" placeholder="ex. Juan Linaw" class="w-full border border-slate-300 rounded-md px-3 py-2.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400">
+                    </div>
+                    <div>
+                        <label class="text-[12px] font-medium text-slate-600 block mb-1">Last Name <span class="text-red-500">*</span></label>
+                        <input id="regLastName" type="text" placeholder="ex. Dela Cruz" class="w-full border border-slate-300 rounded-md px-3 py-2.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400">
+                    </div>
+                    <div>
+                        <label class="text-[12px] font-medium text-slate-600 block mb-1">School Name <span class="text-red-500">*</span></label>
+                        <input id="regSchoolName" type="text" placeholder="ex. PHINMA St. Jude College" class="w-full border border-slate-300 rounded-md px-3 py-2.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400">
+                    </div>
+                    <div>
+                        <label class="text-[12px] font-medium text-slate-600 block mb-1">School Program <span class="text-red-500">*</span></label>
+                        <select id="regProgram" class="w-full border border-slate-300 rounded-md px-3 py-2.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white text-slate-500">
+                            <option value="">Select</option>
+                            <option>BS Business Administration</option>
+                            <option>BS Computer Science</option>
+                            <option>BS Hospitality Management</option>
+                        </select>
+                    </div>
+                    <p id="regStep1Error" class="hidden text-[11.5px] text-red-600"><i class="fa-solid fa-circle-exclamation mr-1"></i>Please fill in all required fields.</p>
+                    <div class="flex items-center justify-center gap-4 pt-2">
+                        <button id="regBack1" type="button" aria-label="Back" class="w-8 h-8 rounded-full bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center transition"><i class="fa-solid fa-arrow-left text-xs"></i></button>
+                        <button id="regNext1" type="button" aria-label="Next" class="w-8 h-8 rounded-full bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center transition"><i class="fa-solid fa-arrow-right text-xs"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Toast Container -->
+<div id="toastContainer"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
