@@ -3,11 +3,12 @@ const pages = {
     login: 'InternConnectLogin.html',
     forgotpw: 'InternConnectForgotPassword.html',
     overview: 'CoordinatorOverview.html',
-    waitingroom: 'CoordinatorWaitingRoom.html',
+    classes: 'CoordinatorClasses.html',
+    roster: 'CoordinatorRoster.html',
+    requests: 'CoordinatorRequests.html',
     classwork: 'CoordinatorClasswork.html',
     taskdetail: 'CoordinatorTaskDetail.html',
     attendance: 'CoordinatorAttendance.html',
-    approvals: 'CoordinatorApproval.html',
     partners: 'CoordinatorDirectory.html',
     audit: 'CoordinatorAudit.html'
 };
@@ -75,7 +76,7 @@ if(pendingToast){
 
 // Copy Class Code (header and register step 3)
 function copyClassCode(){
-    const code = (getJSON('ic_session', null) || {}).classCode || 'PHINMA-CS-2026';
+    const code = activeClassCode() || (getJSON('ic_session', null) || {}).classCode || 'PHINMA-CS-2026';
     navigator.clipboard?.writeText(code).catch(() => {});
     showToast('Class code copied: ' + code, 'success');
 }
@@ -167,6 +168,83 @@ function startSession(user, message){
     if(dest) goTo(dest, message, 'success');
     else showToast((message ? message + ' ' : '') + 'The ' + roleLabels[user.role] + ' dashboard is not built yet.', 'info');
 }
+
+
+/* ============ Classes (batches) ============ */
+
+// classes = { code: { program, theme, school, coordinator, term, status: active | closed | archived, createdAt } }
+const SEED_CODE = 'PHINMA-CS-2026';   // demo class used by the demo login
+const REQUIRED_HOURS = 486;
+
+function esc(text){
+    const d = document.createElement('div');
+    d.textContent = text == null ? '' : String(text);
+    return d.innerHTML.replace(/"/g, '&quot;');
+}
+function todayISO(){
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function formatDate(iso){
+    return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'});
+}
+// 5-year retention counted from the completion / withdrawal date
+function retainUntil(iso){
+    return formatDate(iso.replace(/^\d{4}/, y => String(Number(y) + 5)));
+}
+
+// Every batch of the logged-in coordinator (newest first)
+function myClasses(){
+    const me = getJSON('ic_session', null) || {};
+    const all = getClasses();
+    return Object.keys(all)
+        .filter(code => all[code].coordinator === me.email || (code === SEED_CODE && me.classCode === SEED_CODE))
+        .map(code => Object.assign({term: 'Initial batch', status: 'active', createdAt: '2026-01-01'}, all[code], {code}))
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+// The batch the coordinator is working in right now (remembered in the browser)
+function activeClassCode(){
+    const list = myClasses();
+    const me = getJSON('ic_session', null) || {};
+    const saved = localStorage.getItem('ic_active_class');
+    if(list.some(c => c.code === saved)) return saved;
+    if(list.some(c => c.code === me.classCode)) return me.classCode;
+    return list.length ? list[0].code : '';
+}
+function activeClass(){ return myClasses().find(c => c.code === activeClassCode()) || null; }
+function setActiveClass(code){ localStorage.setItem('ic_active_class', code); }
+function updateClass(code, patch){
+    const stored = getJSON('ic_classes', {});
+    stored[code] = Object.assign({}, getClasses()[code], patch);
+    localStorage.setItem('ic_classes', JSON.stringify(stored));
+}
+function updateUser(email, role, patch){
+    saveUsers(getUsers().map(u => (u.email === email && u.role === role) ? Object.assign({}, u, patch) : u));
+}
+function classCounts(code){
+    if(code === SEED_CODE) return {interns: 85, alumni: 12};   // demo numbers, same as the Overview
+    const members = getUsers().filter(u => u.role === 'student' && u.classCode === code);
+    return {
+        interns: members.filter(u => (u.status || 'intern') === 'intern').length,
+        alumni: members.filter(u => u.status === 'alumni').length
+    };
+}
+function memberTotal(code){
+    return getUsers().filter(u => u.classCode === code && u.role !== 'coordinator').length;
+}
+function refreshHeaderCode(){
+    const code = activeClassCode();
+    if(code) document.querySelectorAll('[data-user="classcode"]').forEach(el => el.textContent = code);
+}
+const STATUS_BADGE = {
+    active: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+    closed: 'text-amber-700 bg-amber-50 border-amber-200',
+    archived: 'text-slate-500 bg-slate-100 border-slate-200'
+};
+const capitalize = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+
+function openModal(el){ el.classList.remove('hidden'); el.classList.add('flex'); }
+function closeModal(el){ el.classList.add('hidden'); el.classList.remove('flex'); }
 
 
 /* ============ Login ============ */
@@ -299,15 +377,38 @@ on('regNext2', 'click', () => {
     const pw = document.getElementById('regPassword').value;
     const pwConfirm = document.getElementById('regPasswordConfirm').value;
     const code = document.getElementById('regCode').value.trim();
-    const mismatch = !pw || pw !== pwConfirm;
-    document.getElementById('regPasswordMismatch').classList.toggle('hidden', !mismatch);
-    document.getElementById('codeError').classList.toggle('hidden', code.length >= 6);
+   const passwordValid =
+    pw.length >= 8 &&
+    /[A-Z]/.test(pw) &&
+    /[a-z]/.test(pw) &&
+    /[0-9]/.test(pw) &&
+    /[^A-Za-z0-9]/.test(pw);
+
+const mismatch = !pw || pw !== pwConfirm;
+
+document.getElementById('regPasswordMismatch').classList.toggle(
+    'hidden',
+    !mismatch
+);
+
+document.getElementById('codeError').classList.toggle(
+    'hidden',
+    code.length >= 6
+);
+
+showStep2Error('');
+
+if (!passwordValid) {
+    return showStep2Error(
+        'Password must be at least 8 characters and include an uppercase letter, lowercase letter, number, and special character.'
+    );
+}
     showStep2Error('');
     if(!email) return showStep2Error('Enter your email first.');
     if(getUsers().some(u => u.role === currentRole() && u.email.toLowerCase() === email.toLowerCase())){
         return showStep2Error('This email is already registered. Use a different email, or sign in instead.');
     }
-    if(mismatch || code.length < 6) return;
+    if(!passwordValid || mismatch || code.length < 6) return;
     saveDraft({Email: email, Password: pw});
     goTo('register3');
 });
@@ -334,7 +435,10 @@ on('regClassCode', 'input', function(){
 // Step 3: Back / Generate Class Code
 on('regBack3', 'click', () => goTo('register2'));
 on('generateCodeBtn', 'click', () => {
-    const code = 'CS-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+    const program = getDraft().Program || '';
+    const prefix = programShort(program) || 'OJT';
+    const code = prefix + '-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+
     document.getElementById('regClassCode').value = code;
     showToast('Class code generated: ' + code, 'success');
 });
@@ -356,7 +460,8 @@ on('enterDashboardBtn', 'click', () => {
         theme = document.querySelector('.theme-dot.active').dataset.theme;
         school = draft.SchoolName;
         const classes = getJSON('ic_classes', {});
-        classes[code] = {program: draft.Program, theme, school: draft.SchoolName, coordinator: draft.Email};
+        classes[code] = {program: draft.Program, theme, school: draft.SchoolName, coordinator: draft.Email,
+                         term: 'Initial batch', status: 'active', createdAt: todayISO()};
         localStorage.setItem('ic_classes', JSON.stringify(classes));
     } else {
         const found = all[code];
@@ -367,7 +472,9 @@ on('enterDashboardBtn', 'click', () => {
     }
 
     const user = {role, email: draft.Email, password: draft.Password, name: draft.FirstName + ' ' + draft.LastName,
-                  program: draft.Program, theme, school, classCode: code, avatar: draft.avatar || ''};
+                  program: draft.Program, theme, school, classCode: code, avatar: draft.avatar || '',
+                  status: role === 'coordinator' ? 'active' : 'pending',   // students and partners wait for the coordinator
+                  company: draft.CompanyName || '', studentNumber: draft.StudentNumber || ''};
     saveUsers(getUsers().concat(user));
     sessionStorage.removeItem('ic_reg');
     startSession(user, 'Account created. Welcome to InternConnect!');
@@ -395,7 +502,7 @@ if(sidebar){
             name: me.name,
             role: me.program ? programShort(me.program) + ' OJT Coordinator' : '',
             school: me.school,
-            classcode: me.classCode
+            classcode: activeClassCode() || me.classCode
         };
         Object.keys(values).forEach(key => {
             if(!values[key]) return;   // keep the sample text when there is nothing saved
@@ -422,9 +529,9 @@ if(sidebar){
 on('viewClassworkLink', 'click', () => goTo('classwork'));
 
 
-/* ============ Waiting Room ============ */
+/* ============ Requests (join requests and deletion requests) ============ */
 
-// Sub Tabs
+// Sub Tabs (also used by the Batch Roster)
 document.querySelectorAll('.subtab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
@@ -434,20 +541,68 @@ document.querySelectorAll('.subtab-btn').forEach(btn => {
     });
 });
 
-// Approve and Reject Requests
-document.querySelectorAll('.join-approve').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const name = btn.closest('div.flex.items-center.justify-between').querySelector('.font-semibold').textContent;
-        btn.closest('.bg-white').remove();
-        showToast(name + ' approved and added to the class.', 'success');
-    });
+// Real sign ups of the current batch show up on top of the sample cards
+function pendingCard(u){
+    const initials = (u.name || '?').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    const isStudent = u.role === 'student';
+    const avatar = isStudent
+        ? '<div class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 text-[12px] font-semibold flex items-center justify-center">' + esc(initials) + '</div>'
+        : '<div class="w-9 h-9 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center"><i class="fa-solid fa-building"></i></div>';
+    const meta = isStudent ? esc(u.studentNumber || u.email) + ' · new sign up' : esc(u.company || u.name) + ' · ' + esc(u.email);
+    return '<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center justify-between gap-3" data-email="' + esc(u.email) + '" data-userrole="' + u.role + '">'
+      + '<div class="flex items-center gap-3">' + avatar + '<div><div class="font-semibold text-slate-900 text-sm">' + esc(isStudent ? u.name : (u.company || u.name)) + '</div><div class="text-[11.5px] text-slate-400">' + meta + '</div></div></div>'
+      + '<div class="flex gap-2 flex-shrink-0">'
+      + '<button class="join-approve text-[12px] font-semibold text-white bg-emerald-500 hover:bg-emerald-600 px-3 py-1.5 rounded-md transition"><i class="fa-solid fa-check mr-1"></i>Approve</button>'
+      + '<button class="join-reject text-[12px] font-semibold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-md transition"><i class="fa-solid fa-xmark mr-1"></i>Reject</button>'
+      + '</div></div>';
+}
+function updateRequestCounts(){
+    const count = (id) => document.querySelectorAll('#' + id + ' > .bg-white').length;
+    document.getElementById('wrStudentsCount').textContent = '(' + count('wr-students') + ')';
+    document.getElementById('wrPartnersCount').textContent = '(' + count('wr-partners') + ')';
+    document.getElementById('wrDeletionsCount').textContent = '(' + count('wr-deletions') + ')';
+}
+if(document.getElementById('wr-students')){
+    const code = activeClassCode();
+    const pending = getUsers().filter(u => u.classCode === code && u.status === 'pending');
+    pending.filter(u => u.role === 'student').forEach(u => document.getElementById('wr-students').insertAdjacentHTML('afterbegin', pendingCard(u)));
+    pending.filter(u => u.role === 'partnercompany').forEach(u => document.getElementById('wr-partners').insertAdjacentHTML('afterbegin', pendingCard(u)));
+    updateRequestCounts();
+}
+
+// Approve and Reject (approved students become Interns, rejected sign ups are deleted)
+document.addEventListener('click', (e) => {
+    const approve = e.target.closest('.join-approve');
+    const reject = e.target.closest('.join-reject');
+    if(!approve && !reject) return;
+    const card = (approve || reject).closest('.bg-white');
+    const name = card.querySelector('.font-semibold').textContent;
+    const email = card.dataset.email, role = card.dataset.userrole;
+    if(email){
+        if(approve) updateUser(email, role, {status: role === 'student' ? 'intern' : 'active'});
+        else saveUsers(getUsers().filter(u => !(u.email === email && u.role === role)));
+    }
+    card.remove();
+    updateRequestCounts();
+    if(approve) showToast(name + ' approved and added to the class.', 'success');
+    else showToast(name + "'s request was rejected.", 'warn');
 });
-document.querySelectorAll('.join-reject').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const name = btn.closest('div.flex.items-center.justify-between').querySelector('.font-semibold').textContent;
-        btn.closest('.bg-white').remove();
-        showToast(name + "'s request was rejected.", 'warn');
-    });
+
+// Alumni Deletion Requests: Process deletes profile data, Hold keeps what must be retained
+document.addEventListener('click', (e) => {
+    const process = e.target.closest('.del-process');
+    const hold = e.target.closest('.del-hold');
+    if(!process && !hold) return;
+    const card = (process || hold).closest('[data-retain]');
+    const name = card.querySelector('.font-semibold').textContent;
+    if(process){
+        card.remove();
+        updateRequestCounts();
+        showToast('Profile data of ' + name + ' deleted. OJT records kept until ' + card.dataset.retain + '.', 'success');
+    } else {
+        card.querySelector('.del-actions').innerHTML = '<span class="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">On hold: within retention period</span>';
+        showToast('Request on hold. The alumni will see the reason and the date.', 'warn');
+    }
 });
 
 
@@ -472,6 +627,29 @@ on('postTaskBtn', 'click', () => {
     taskModal.classList.add('hidden');
     showToast('Task posted to your class stream.', 'success');
 });
+
+
+// Batch Selector (switches the current batch)
+function updateBatchBadge(){
+    const cls = activeClass();
+    const badge = document.getElementById('batchStatusBadge');
+    if(!cls || !badge) return;
+    badge.textContent = capitalize(cls.status);
+    badge.className = 'text-[10.5px] font-semibold border px-2 py-0.5 rounded-full ' + STATUS_BADGE[cls.status];
+}
+if(document.getElementById('batchSelect')){
+    const sel = document.getElementById('batchSelect');
+    const active = activeClassCode();
+    sel.innerHTML = myClasses().filter(c => c.status !== 'archived').map(c =>
+        '<option value="' + esc(c.code) + '"' + (c.code === active ? ' selected' : '') + '>' + esc(c.term) + ' · ' + esc(c.code) + '</option>').join('');
+    updateBatchBadge();
+    sel.addEventListener('change', () => {
+        setActiveClass(sel.value);
+        refreshHeaderCode();
+        updateBatchBadge();
+        showToast('Switched to ' + sel.options[sel.selectedIndex].text + '.', 'info');
+    });
+}
 
 
 /* ============ Task Detail ============ */
@@ -509,6 +687,17 @@ const taskData = {
       ]
     }
 };
+taskData.week5.maxPoints = 100;
+taskData.midterm.maxPoints = 50;
+
+// Grades are saved per task and per student: { 'week5|Aiyu T.': { score, feedback } }
+const gradeKey = (taskId, name) => taskId + '|' + name;
+const getGrades = () => getJSON('ic_grades', {});
+function gradeText(taskId, name){
+    const g = getGrades()[gradeKey(taskId, name)];
+    return g ? ' · Graded ' + g.score + '/' + taskData[taskId].maxPoints : '';
+}
+
 let currentTaskId = 'week5';
 let currentSubIndex = 0;
 
@@ -523,6 +712,10 @@ function renderSubmissionDetail(taskId, index){
     document.getElementById('subDetailRaw').textContent = sub.raw;
     document.getElementById('subDetailBullet').textContent = sub.bullet;
     currentSubIndex = index;
+    const g = getGrades()[gradeKey(taskId, sub.name)];
+    document.getElementById('gradeInput').value = g ? g.score : '';
+    document.getElementById('gradeFeedback').value = g ? g.feedback : '';
+    document.getElementById('gradeMax').textContent = taskData[taskId].maxPoints;
 }
 
 // Fill In The Whole Task Detail Screen
@@ -546,7 +739,7 @@ function renderTaskDetail(taskId){
     t.submissions.forEach((sub, i) => {
       const item = document.createElement('div');
       item.className = 'log-item border rounded-lg px-3 py-2.5 cursor-pointer ' + (i === 0 ? 'border-sky-300 bg-sky-50' : 'border-slate-200 hover:bg-slate-50');
-      item.innerHTML = '<div class="text-[12.5px] font-semibold text-slate-900">' + sub.name + '</div><div class="text-[10.5px] text-slate-400">' + sub.status + '</div>';
+      item.innerHTML = '<div class="text-[12.5px] font-semibold text-slate-900">' + sub.name + '</div><div class="text-[10.5px] text-slate-400">' + sub.status + gradeText(taskId, sub.name) + '</div>';
       item.addEventListener('click', () => {
         document.querySelectorAll('#taskSubmissionsList .log-item').forEach(el => { el.classList.remove('border-sky-300','bg-sky-50'); el.classList.add('border-slate-200'); });
         item.classList.remove('border-slate-200'); item.classList.add('border-sky-300','bg-sky-50');
@@ -575,6 +768,21 @@ on('td-reviseBtn', 'click', () => {
     showToast('Revision requested — ' + sub.name + ' will be notified.', 'warn');
 });
 on('td-rejectBtn', 'click', () => showToast('Log rejected.', 'warn'));
+on('td-saveGradeBtn', 'click', () => {
+    const t = taskData[currentTaskId];
+    const sub = t.submissions[currentSubIndex];
+    const raw = document.getElementById('gradeInput').value;
+    const score = Number(raw);
+    if(raw === '' || isNaN(score) || score < 0 || score > t.maxPoints){
+        return showToast('Enter a grade from 0 to ' + t.maxPoints + '.', 'warn');
+    }
+    const grades = getGrades();
+    grades[gradeKey(currentTaskId, sub.name)] = {score, feedback: document.getElementById('gradeFeedback').value.trim()};
+    localStorage.setItem('ic_grades', JSON.stringify(grades));
+    const item = document.querySelectorAll('#taskSubmissionsList .log-item')[currentSubIndex];
+    if(item) item.lastChild.textContent = sub.status + gradeText(currentTaskId, sub.name);
+    showToast('Grade saved: ' + sub.name + ' got ' + score + '/' + t.maxPoints + '.', 'success');
+});
 on('td-genPdfBtn', 'click', () => {
     const sub = taskData[currentTaskId].submissions[currentSubIndex];
     showToast('Generating PDF of ' + sub.name + "'s accomplishment report...", 'info');
@@ -585,36 +793,231 @@ on('td-genWordBtn', 'click', () => {
 });
 
 
-/* ============ Report Approvals ============ */
+/* ============ Classes Page ============ */
 
-// Select All
-on('selectAll', 'change', function(){
-    document.querySelectorAll('.log-item input[type="checkbox"]').forEach(cb => cb.checked = this.checked);
-});
-
-// Highlight The Clicked Log
-document.querySelectorAll('.log-item').forEach(item => {
-    item.addEventListener('click', (e) => {
-        if(e.target.tagName === 'INPUT') return;
-        document.querySelectorAll('.log-item').forEach(i => i.classList.remove('selected'));
-        item.classList.add('selected');
-    });
-});
-
-// Approve and Reject Selected
-function countSelectedLogs(){
-    return document.querySelectorAll('.log-item input[type="checkbox"]:checked').length;
+function renderClasses(){
+    const box = document.getElementById('classList');
+    if(!box) return;
+    const showArchived = document.getElementById('showArchived').checked;
+    const active = activeClassCode();
+    const list = myClasses().filter(c => showArchived || c.status !== 'archived');
+    if(!list.length){
+        box.innerHTML = '<p class="text-[12.5px] text-slate-400 col-span-full">No batches yet. Create your first batch.</p>';
+        return;
+    }
+    box.innerHTML = list.map(c => {
+        const n = classCounts(c.code);
+        const isCurrent = c.code === active;
+        const btn = 'text-[11.5px] font-semibold px-3 py-1.5 rounded-md transition ';
+        return '<div class="bg-white rounded-xl border ' + (isCurrent ? 'border-sky-300' : 'border-slate-200') + ' shadow-sm p-4">'
+          + '<div class="flex items-start justify-between gap-2">'
+          +   '<div><div class="font-semibold text-slate-900 text-sm">' + esc(c.term) + '</div>'
+          +   '<div class="text-[11.5px] text-slate-400 mt-0.5">' + esc(c.program || '') + '</div></div>'
+          +   '<div class="flex items-center gap-1.5 flex-shrink-0">'
+          +     (isCurrent ? '<span class="text-[10.5px] font-semibold text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full">Current</span>' : '')
+          +     '<span class="text-[10.5px] font-semibold border px-2 py-0.5 rounded-full ' + STATUS_BADGE[c.status] + '">' + capitalize(c.status) + '</span>'
+          +   '</div></div>'
+          + '<div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-slate-600">'
+          +   '<span><i class="fa-solid fa-user-graduate mr-1 text-slate-400"></i>' + n.interns + ' interns</span>'
+          +   '<span><i class="fa-solid fa-medal mr-1 text-slate-400"></i>' + n.alumni + ' alumni</span>'
+          +   '<span class="text-slate-500"><i class="fa-solid fa-hashtag mr-1 text-slate-400"></i>' + esc(c.code) + '</span>'
+          + '</div>'
+          + '<div class="mt-3 flex flex-wrap gap-2">'
+          +   '<button data-act="open" data-code="' + esc(c.code) + '" class="' + btn + 'text-white bg-slate-900 hover:bg-slate-800">Open roster</button>'
+          +   (isCurrent ? '' : '<button data-act="current" data-code="' + esc(c.code) + '" class="' + btn + 'text-slate-600 bg-white border border-slate-200 hover:bg-slate-50">Set as current</button>')
+          +   (c.status === 'closed' && n.interns === 0 ? '<button data-act="archive" data-code="' + esc(c.code) + '" class="' + btn + 'text-slate-600 bg-white border border-slate-200 hover:bg-slate-50">Archive</button>' : '')
+          +   '<button data-act="rename" data-code="' + esc(c.code) + '" class="' + btn + 'text-slate-600 bg-white border border-slate-200 hover:bg-slate-50">Rename</button>'
+          +   (c.code !== SEED_CODE && memberTotal(c.code) === 0 ? '<button data-act="delete" data-code="' + esc(c.code) + '" class="' + btn + 'text-red-600 bg-red-50 hover:bg-red-100">Delete</button>' : '')
+          +   (c.status === 'archived' ? '<button data-act="restore" data-code="' + esc(c.code) + '" class="' + btn + 'text-slate-600 bg-white border border-slate-200 hover:bg-slate-50">Restore</button>' : '')
+          + '</div></div>';
+    }).join('');
 }
-on('approveSelectedBtn', 'click', () => {
-    const n = countSelectedLogs();
-    if(!n) return showToast('Select at least one log first.', 'warn');
-    showToast(n + ' log(s) approved and pushed to verified resumes.', 'success');
-});
-on('rejectSelectedBtn', 'click', () => {
-    const n = countSelectedLogs();
-    if(!n) return showToast('Select at least one log first.', 'warn');
-    showToast(n + ' log(s) rejected.', 'warn');
-});
+
+if(document.getElementById('classList')){
+    renderClasses();
+    on('showArchived', 'change', renderClasses);
+
+    document.getElementById('classList').addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-act]');
+        if(!btn) return;
+        const code = btn.dataset.code;
+        if(btn.dataset.act === 'open'){ setActiveClass(code); goTo('roster'); return; }
+        if(btn.dataset.act === 'current'){ setActiveClass(code); showToast('Current batch changed to ' + code + '.', 'info'); }
+        if(btn.dataset.act === 'archive'){ updateClass(code, {status: 'archived'}); showToast('Batch archived. Its records are kept.', 'info'); }
+        if(btn.dataset.act === 'restore'){ updateClass(code, {status: 'closed'}); showToast('Batch restored.', 'info'); }
+        if(btn.dataset.act === 'rename'){ openBatchModal(code); return; }
+        if(btn.dataset.act === 'delete'){
+            if(myClasses().length <= 1) return showToast('You need at least one batch. Create another one first.', 'warn');
+            if(!confirm('Delete this empty batch? This cannot be undone.')) return;
+            const stored = getJSON('ic_classes', {});
+            delete stored[code];
+            localStorage.setItem('ic_classes', JSON.stringify(stored));
+            showToast('Batch deleted.', 'info');
+        }
+        refreshHeaderCode();
+        renderClasses();
+    });
+
+    // Create New Batch
+    const batchModal = document.getElementById('batchModal');
+    let editingCode = null;   // null = creating a new batch, otherwise the code being renamed
+    function openBatchModal(code){
+        editingCode = code || null;
+        const cls = code ? myClasses().find(c => c.code === code) : null;
+        document.getElementById('batchModalTitle').textContent = cls ? 'Rename Batch' : 'Create New Batch';
+        document.getElementById('batchModalNote').classList.toggle('hidden', !!cls);
+        document.getElementById('createBatchBtn').textContent = cls ? 'Save' : 'Create Batch';
+        document.getElementById('batchTermInput').value = cls ? cls.term : '';
+        openModal(batchModal);
+    }
+    window.openBatchModal = openBatchModal;
+    on('openBatchModalBtn', 'click', () => openBatchModal());
+    on('cancelBatchBtn', 'click', () => closeModal(batchModal));
+    on('createBatchBtn', 'click', () => {
+        const term = document.getElementById('batchTermInput').value.trim();
+        if(!term) return showToast('Enter a batch name first.', 'warn');
+        if(editingCode){
+            updateClass(editingCode, {term});
+            closeModal(batchModal);
+            renderClasses();
+            return showToast('Batch renamed.', 'success');
+        }
+        const me = getJSON('ic_session', null) || {};
+        const prefix = programShort(me.program) || 'OJT';   // same format as the register code (ex. BSCS-X7K2QP)
+        let code;
+        do { code = prefix + '-' + Math.random().toString(36).slice(2, 8).toUpperCase(); } while(getClasses()[code]);
+        const stored = getJSON('ic_classes', {});
+        stored[code] = {program: me.program, theme: me.theme, school: me.school, coordinator: me.email, term, status: 'active', createdAt: todayISO()};
+        localStorage.setItem('ic_classes', JSON.stringify(stored));
+        setActiveClass(code);
+        closeModal(batchModal);
+        refreshHeaderCode();
+        renderClasses();
+        showToast('Batch created. Class code: ' + code, 'success');
+    });
+}
+
+
+/* ============ Batch Roster ============ */
+
+// Sample rows so the design can be reviewed (real students of the batch are added on top)
+const sampleMembers = [
+    {id: 's1', name: 'Aiyu T.', company: 'Brightpath Software', hours: 486, status: 'intern'},
+    {id: 's2', name: 'Kaye P.', company: 'Brightpath Software', hours: 420, status: 'intern'},
+    {id: 's3', name: 'Leo A.', company: 'Nova Retail Systems', hours: 318, status: 'intern'},
+    {id: 's4', name: 'Jomari D.', company: 'Verano Digital Studio', hours: 150, status: 'intern'},
+    {id: 's5', name: 'Mara L.', company: 'Brightpath Software', hours: 486, status: 'alumni', completedAt: '2026-03-14', employment: 'employed'},
+    {id: 's6', name: 'Rico S.', company: 'Nova Retail Systems', hours: 486, status: 'alumni', completedAt: '2026-03-14', employment: 'seeking'},
+    {id: 's7', name: 'Dana V.', company: '—', hours: 72, status: 'withdrawn', withdrawnAt: '2026-02-20'}
+];
+let rosterMembers = [];
+
+function loadRoster(){
+    const code = activeClassCode();
+    const real = getUsers()
+        .filter(u => u.role === 'student' && u.classCode === code && u.status !== 'pending')
+        .map(u => ({id: u.email, real: true, name: u.name, company: u.company || '—', hours: u.hours || 0,
+                    status: u.status || 'intern', completedAt: u.completedAt, withdrawnAt: u.withdrawnAt, employment: u.employment || 'seeking'}));
+    rosterMembers = real.concat(sampleMembers.map(m => Object.assign({sample: true}, m)));
+}
+function memberName(m){
+    return '<div class="font-semibold text-slate-900">' + esc(m.name) + '</div>';
+}
+function setMember(m, patch){
+    Object.assign(m, patch);
+    if(m.real) updateUser(m.id, 'student', patch);
+}
+
+function renderRoster(){
+    const cls = activeClass();
+    if(!cls){ document.getElementById('rosterTitle').textContent = 'No batch selected'; return; }
+    document.getElementById('rosterTitle').textContent = cls.term;
+    document.getElementById('rosterMeta').textContent = (cls.program || '') + ' · Class Code ' + cls.code;
+    const badge = document.getElementById('rosterStatus');
+    badge.textContent = capitalize(cls.status);
+    badge.className = 'text-[10.5px] font-semibold border px-2 py-0.5 rounded-full ' + STATUS_BADGE[cls.status];
+    document.getElementById('closeBatchBtn').classList.toggle('hidden', cls.status !== 'active');
+
+    const interns = rosterMembers.filter(m => m.status === 'intern');
+    const alumni = rosterMembers.filter(m => m.status === 'alumni');
+    const withdrawn = rosterMembers.filter(m => m.status === 'withdrawn');
+    document.getElementById('rosterInternsCount').textContent = '(' + interns.length + ')';
+    document.getElementById('rosterAlumniCount').textContent = '(' + alumni.length + ')';
+    document.getElementById('rosterWithdrawnCount').textContent = '(' + withdrawn.length + ')';
+
+    const fill = (id, rows) => {
+        document.getElementById(id).innerHTML = rows.join('');
+        document.getElementById(id + 'Empty').classList.toggle('hidden', rows.length > 0);
+    };
+    fill('rosterInternsBody', interns.map(m => {
+        const pct = Math.min(100, Math.round(m.hours / REQUIRED_HOURS * 100));
+        const done = m.hours >= REQUIRED_HOURS;
+        return '<tr><td class="px-4 py-3">' + memberName(m) + '</td>'
+          + '<td class="px-4 py-3 text-slate-600">' + esc(m.company) + '</td>'
+          + '<td class="px-4 py-3"><div class="flex items-center gap-2"><div class="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-sky-600" style="width:' + pct + '%"></div></div><span class="text-[11.5px] text-slate-500">' + m.hours + ' / ' + REQUIRED_HOURS + '</span></div></td>'
+          + '<td class="px-4 py-3"><div class="flex gap-2">'
+          + '<button data-act="complete" data-id="' + esc(m.id) + '" ' + (done ? '' : 'disabled title="Hours not complete yet"') + ' class="text-[11px] font-semibold px-2.5 py-1 rounded-md transition ' + (done ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100' : 'text-slate-400 bg-slate-100 cursor-not-allowed') + '">Mark completed</button>'
+          + '<button data-act="withdraw" data-id="' + esc(m.id) + '" class="text-[11px] font-semibold text-red-600 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-md transition">Withdraw</button>'
+          + '</div></td></tr>';
+    }));
+    fill('rosterAlumniBody', alumni.map(m => {
+        const date = m.completedAt || todayISO();
+        return '<tr><td class="px-4 py-3">' + memberName(m) + '</td>'
+          + '<td class="px-4 py-3 text-slate-600">' + formatDate(date) + '</td>'
+          + '<td class="px-4 py-3"><select data-act="employment" data-id="' + esc(m.id) + '" class="border border-slate-300 rounded-md px-2 py-1 text-[11.5px] bg-white focus:outline-none focus:ring-2 focus:ring-sky-400">'
+          +   '<option value="seeking"' + (m.employment === 'employed' ? '' : ' selected') + '>Seeking work</option>'
+          +   '<option value="employed"' + (m.employment === 'employed' ? ' selected' : '') + '>Employed</option></select></td>'
+          + '<td class="px-4 py-3 text-slate-600">' + retainUntil(date) + '</td></tr>';
+    }));
+    fill('rosterWithdrawnBody', withdrawn.map(m => {
+        const date = m.withdrawnAt || todayISO();
+        return '<tr><td class="px-4 py-3">' + memberName(m) + '</td>'
+          + '<td class="px-4 py-3 text-slate-600">' + formatDate(date) + '</td>'
+          + '<td class="px-4 py-3 text-slate-600">' + retainUntil(date) + '</td></tr>';
+    }));
+}
+
+if(document.getElementById('rosterInternsBody')){
+    loadRoster();
+    renderRoster();
+    on('backToClassesBtn', 'click', () => goTo('classes'));
+    on('goRequestsBtn', 'click', () => goTo('requests'));
+
+    document.getElementById('tab-roster').addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-act]');
+        if(!btn || btn.disabled) return;
+        const m = rosterMembers.find(x => x.id === btn.dataset.id);
+        if(!m) return;
+        if(btn.dataset.act === 'complete'){
+            setMember(m, {status: 'alumni', completedAt: todayISO(), employment: 'seeking'});
+            showToast(m.name + ' is now an alumni. Records kept until ' + retainUntil(todayISO()) + '.', 'success');
+        }
+        if(btn.dataset.act === 'withdraw'){
+            if(!confirm('Mark ' + m.name + ' as withdrawn? They will stay in this batch records.')) return;
+            setMember(m, {status: 'withdrawn', withdrawnAt: todayISO()});
+            showToast(m.name + ' was marked as withdrawn.', 'warn');
+        }
+        renderRoster();
+    });
+    document.getElementById('tab-roster').addEventListener('change', (e) => {
+        const sel = e.target.closest('select[data-act="employment"]');
+        if(!sel) return;
+        const m = rosterMembers.find(x => x.id === sel.dataset.id);
+        setMember(m, {employment: sel.value});
+        showToast(m.name + ' marked as ' + (sel.value === 'employed' ? 'employed.' : 'seeking work.'), 'info');
+    });
+
+    // Close Batch: interns with complete hours become alumni, the rest stay in this batch
+    on('closeBatchBtn', 'click', () => {
+        const ready = rosterMembers.filter(m => m.status === 'intern' && m.hours >= REQUIRED_HOURS);
+        const ongoing = rosterMembers.filter(m => m.status === 'intern').length - ready.length;
+        if(!confirm('Close this batch? ' + ready.length + ' intern(s) with complete hours will become alumni. ' + ongoing + ' will stay until they finish. No new students can join.')) return;
+        ready.forEach(m => setMember(m, {status: 'alumni', completedAt: todayISO(), employment: 'seeking'}));
+        updateClass(activeClassCode(), {status: 'closed'});
+        renderRoster();
+        showToast('Batch closed. ' + ready.length + ' moved to Alumni, ' + ongoing + ' still ongoing.', 'success');
+    });
+}
 
 
 /* ============ Attendance and Progress ============ */

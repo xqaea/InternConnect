@@ -51,8 +51,12 @@
             <i class="fa-solid fa-gauge-high w-4 text-center"></i> <span class="sidebar-text">Overview</span>
         </button>
 
-        <button data-tab="waitingroom" class="nav-link w-full flex items-center justify-between px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Waiting Room">
-            <span class="flex items-center"><i class="fa-solid fa-door-open w-4 text-center mr-3"></i><span class="sidebar-text">Waiting Room</span></span>
+        <button data-tab="classes" class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Classes">
+            <i class="fa-solid fa-layer-group w-4 text-center"></i> <span class="sidebar-text">Classes</span>
+        </button>
+
+        <button data-tab="requests" class="nav-link w-full flex items-center justify-between px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Requests">
+            <span class="flex items-center"><i class="fa-solid fa-inbox w-4 text-center mr-3"></i><span class="sidebar-text">Requests</span></span>
             <span id="waitingBadge" class="sidebar-text bg-sky-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">5</span>
         </button>
 
@@ -64,9 +68,6 @@
             <i class="fa-solid fa-user-clock w-4 text-center"></i> <span class="sidebar-text">Attendance & Progress</span>
         </button>
 
-        <button data-tab="approvals" class="nav-link w-full flex items-center justify-between px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Report Approvals">
-            <span class="flex items-center"><i class="fa-solid fa-clipboard-check w-4 text-center mr-3"></i><span class="sidebar-text">Report Approvals</span></span>
-        </button>
 
         <button data-tab="partners" class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Partner & MOA Directory">
             <i class="fa-solid fa-handshake w-4 text-center"></i> <span class="sidebar-text">Partner & MOA Directory</span>
@@ -218,6 +219,19 @@
               </div>
             </div>
 
+            <!-- Grade -->
+            <div class="mb-5">
+              <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Grade</div>
+              <div class="flex flex-wrap items-center gap-2.5">
+                <div class="flex items-center gap-1.5">
+                  <input id="gradeInput" type="number" min="0" step="0.5" placeholder="0" class="w-24 border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400">
+                  <span class="text-[12.5px] text-slate-500">/ <span id="gradeMax">100</span></span>
+                </div>
+                <input id="gradeFeedback" type="text" placeholder="Feedback for the student (optional)" class="flex-1 min-w-[200px] border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400">
+                <button id="td-saveGradeBtn" class="text-[12.5px] font-semibold text-white bg-slate-900 hover:bg-slate-800 px-3.5 py-2 rounded-md transition"><i class="fa-solid fa-floppy-disk mr-1.5"></i>Save Grade</button>
+              </div>
+            </div>
+
             <!-- Action Buttons -->
             <div class="flex flex-wrap items-center gap-2.5 pt-4 border-t border-slate-100">
               <button id="td-approveBtn" class="text-[12.5px] font-semibold text-white bg-emerald-500 hover:bg-emerald-600 px-3.5 py-2 rounded-md transition"><i class="fa-solid fa-check mr-1.5"></i>Approve & Push to Verified Resume</button>
@@ -235,7 +249,7 @@
 
         <!-- Footer -->
         <footer id="mainFooter" class="fixed bottom-0 left-0 right-0 bg-slate-900 text-slate-300 text-[11px] text-center py-2 px-4 z-20">
-            RA 10173 Data Privacy Act Compliant &nbsp;
+            RA 10173 Data Privacy Act Compliant &nbsp;·&nbsp; ISO/IEC 25010 Evaluated System &nbsp;·&nbsp; PHINMA St. Jude College Dasmariñas
         </footer>
     </div>
 </div>

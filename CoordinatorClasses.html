@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>InternConnect - Report Approvals</title>
+    <title>InternConnect - Classes</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -51,8 +51,12 @@
             <i class="fa-solid fa-gauge-high w-4 text-center"></i> <span class="sidebar-text">Overview</span>
         </button>
 
-        <button data-tab="waitingroom" class="nav-link w-full flex items-center justify-between px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Waiting Room">
-            <span class="flex items-center"><i class="fa-solid fa-door-open w-4 text-center mr-3"></i><span class="sidebar-text">Waiting Room</span></span>
+        <button data-tab="classes" class="nav-link active w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Classes">
+            <i class="fa-solid fa-layer-group w-4 text-center"></i> <span class="sidebar-text">Classes</span>
+        </button>
+
+        <button data-tab="requests" class="nav-link w-full flex items-center justify-between px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Requests">
+            <span class="flex items-center"><i class="fa-solid fa-inbox w-4 text-center mr-3"></i><span class="sidebar-text">Requests</span></span>
             <span id="waitingBadge" class="sidebar-text bg-sky-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">5</span>
         </button>
 
@@ -64,9 +68,6 @@
             <i class="fa-solid fa-user-clock w-4 text-center"></i> <span class="sidebar-text">Attendance & Progress</span>
         </button>
 
-        <button data-tab="approvals" class="nav-link active w-full flex items-center justify-between px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Report Approvals">
-            <span class="flex items-center"><i class="fa-solid fa-clipboard-check w-4 text-center mr-3"></i><span class="sidebar-text">Report Approvals</span></span>
-        </button>
 
         <button data-tab="partners" class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Partner & MOA Directory">
             <i class="fa-solid fa-handshake w-4 text-center"></i> <span class="sidebar-text">Partner & MOA Directory</span>
@@ -165,54 +166,36 @@
 
         <main class="flex-1 px-5 lg:px-8 py-6 pb-24">
 
-            <!-- Report Approvals -->
-      <section id="tab-approvals" class="space-y-4">
-
-        <!-- Page Title -->
-        <div>
-          <h1 class="text-xl font-bold text-slate-900">Report Approvals</h1>
-          <p class="text-sm text-slate-500 mt-0.5">Review and approve daily logs submitted by BSCS interns.</p>
+            <!-- Classes -->
+      <section id="tab-classes" class="space-y-4">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 class="text-xl font-bold text-slate-900">Classes</h1>
+            <p class="text-sm text-slate-500 mt-0.5">Each OJT batch has its own room and class code. Past batches stay here with their interns and alumni.</p>
+          </div>
+          <button id="openBatchModalBtn" class="text-[12.5px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-3.5 py-2 rounded-md transition"><i class="fa-solid fa-plus mr-1.5"></i>Create New Batch</button>
         </div>
 
-        <!-- Bulk Actions -->
-        <div class="flex flex-wrap items-center justify-between gap-2.5 bg-white rounded-xl border border-slate-200 p-3 shadow-sm">
-          <label class="flex items-center gap-2 text-[12.5px] font-medium text-slate-600">
-            <input id="selectAll" type="checkbox" class="w-4 h-4 rounded border-slate-300 text-sky-600 focus:ring-sky-400"> Select all
-          </label>
-          <div class="flex gap-2">
-            <button id="approveSelectedBtn" class="text-[12px] font-semibold text-white bg-emerald-500 hover:bg-emerald-600 px-3 py-1.5 rounded-md transition"><i class="fa-solid fa-check mr-1"></i>Approve Selected</button>
-            <button id="rejectSelectedBtn" class="text-[12px] font-semibold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-md transition"><i class="fa-solid fa-xmark mr-1"></i>Reject Selected</button>
-          </div>
-        </div>
+        <label class="inline-flex items-center gap-2 text-[12px] text-slate-500">
+          <input id="showArchived" type="checkbox" class="w-4 h-4 rounded border-slate-300 text-sky-600 focus:ring-sky-400"> Show archived batches
+        </label>
 
-        <!-- Pending Logs -->
-        <div class="space-y-2.5">
-          <div class="log-item flex items-center gap-3 bg-white rounded-xl border border-slate-200 shadow-sm p-4 cursor-pointer">
-            <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-sky-600 focus:ring-sky-400">
-            <div class="flex-1 min-w-0">
-              <div class="font-semibold text-slate-900 text-sm">Aiyu T.</div>
-              <div class="text-[11.5px] text-slate-400 truncate">Sept 15, 2026 · 8 hours claimed · Brightpath Software</div>
-            </div>
-            <span class="text-[11px] font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 flex-shrink-0">Pending Review</span>
-          </div>
-          <div class="log-item flex items-center gap-3 bg-white rounded-xl border border-slate-200 shadow-sm p-4 cursor-pointer">
-            <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-sky-600 focus:ring-sky-400">
-            <div class="flex-1 min-w-0">
-              <div class="font-semibold text-slate-900 text-sm">Leo A.</div>
-              <div class="text-[11.5px] text-slate-400 truncate">Sept 15, 2026 · 8 hours claimed · Nova Retail Systems</div>
-            </div>
-            <span class="text-[11px] font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 flex-shrink-0">Pending Review</span>
-          </div>
-          <div class="log-item flex items-center gap-3 bg-white rounded-xl border border-slate-200 shadow-sm p-4 cursor-pointer">
-            <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-sky-600 focus:ring-sky-400">
-            <div class="flex-1 min-w-0">
-              <div class="font-semibold text-slate-900 text-sm">Jomari D.</div>
-              <div class="text-[11.5px] text-slate-400 truncate">Sept 14, 2026 · 6 hours claimed · Verano Digital Studio</div>
-            </div>
-            <span class="text-[11px] font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 flex-shrink-0">Pending Review</span>
-          </div>
-        </div>
+        <div id="classList" class="grid gap-3 md:grid-cols-2"></div>
       </section>
+
+      <!-- Create Batch Modal -->
+      <div id="batchModal" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/40 p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-5">
+          <h2 id="batchModalTitle" class="font-semibold text-slate-900">Create New Batch</h2>
+          <p id="batchModalNote" class="text-[12.5px] text-slate-500 mt-1 mb-4">A new class code is generated for this batch. Your program and theme stay the same.</p>
+          <label class="text-[12px] font-medium text-slate-600 block mb-1">Batch name <span class="text-red-500">*</span></label>
+          <input id="batchTermInput" type="text" placeholder="ex. AY 2026-2027 · Term 2" class="w-full border border-slate-300 rounded-md px-3 py-2.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400">
+          <div class="flex justify-end gap-2 mt-5">
+            <button id="cancelBatchBtn" class="text-[12.5px] font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-md transition">Cancel</button>
+            <button id="createBatchBtn" class="text-[12.5px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-3.5 py-2 rounded-md transition">Create Batch</button>
+          </div>
+        </div>
+      </div>
 
         </main>
 
