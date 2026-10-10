@@ -60,6 +60,10 @@
             <span id="waitingBadge" class="sidebar-text bg-sky-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">5</span>
         </button>
 
+        <button data-tab="placements" class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Placements">
+            <i class="fa-solid fa-route w-4 text-center"></i> <span class="sidebar-text">Placements</span>
+        </button>
+
         <button data-tab="classwork" class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Classwork">
             <i class="fa-solid fa-clipboard-list w-4 text-center"></i> <span class="sidebar-text">Classwork and Tasks</span>
         </button>
@@ -179,6 +183,12 @@
           </button>
         </div>
 
+        <!-- Quick Open: Intern Folder -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-wrap items-center gap-3">
+          <div class="text-[12.5px] text-slate-600"><i class="fa-solid fa-folder-open mr-1.5 text-sky-600"></i>Open an intern's files</div>
+          <select id="internFolderPicker" class="flex-1 min-w-[200px] border border-slate-300 rounded-md px-2 py-1.5 text-[12.5px] bg-white focus:outline-none focus:ring-2 focus:ring-sky-400"></select>
+        </div>
+
         <!-- Partner Cards -->
         <div class="grid md:grid-cols-2 gap-4">
           <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
@@ -253,47 +263,53 @@
     </div>
 </div>
 
-<!-- Partner Vault Modal -->
+<!-- Partner Vault Modal (folders: Agreements, Company documents, Interns > one folder per intern) -->
 <div id="vaultModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl w-full max-w-md p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+  <div class="bg-white rounded-xl w-full max-w-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
     <div class="flex items-center justify-between mb-1">
       <h3 class="font-bold text-slate-900">Shared Vault — <span id="vaultCompanyName">Brightpath Software</span></h3>
-      <button id="closeVaultModalBtn" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      <button id="closeVaultModalBtn" class="text-slate-400 hover:text-slate-600" aria-label="Close vault"><i class="fa-solid fa-xmark"></i></button>
     </div>
-    <p class="text-[11.5px] text-slate-400 mb-4">Files you uploaded are editable. Files uploaded by the partner's HR need an access request before you can edit them.</p>
+    <p class="text-[11.5px] text-slate-400 mb-4">Upload signed scans only. Letters are prepared and signed outside the system; the vault is for sending and keeping a copy. Files you uploaded are yours to rename, replace or delete. Files from the partner's HR need their approval first.</p>
 
-    <div id="vaultFileList" class="space-y-2 mb-4">
-      <div class="flex items-center justify-between border border-slate-200 rounded-md px-3 py-2.5" data-owner="hr">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <i class="fa-solid fa-file-pdf text-red-500 flex-shrink-0"></i>
-          <div class="min-w-0">
-            <div id="vaultMoaFileName" class="text-[12.5px] text-slate-700 truncate">MOA_Brightpath_Software_2026.pdf</div>
-            <div class="text-[10.5px] text-slate-400">Uploaded by partner HR</div>
-          </div>
-        </div>
-        <div class="flex items-center gap-2 flex-shrink-0">
-          <i class="fa-solid fa-download text-slate-400 hover:text-slate-600 cursor-pointer"></i>
-          <button class="request-file-access text-[10.5px] font-semibold text-slate-500 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-md transition"><i class="fa-solid fa-lock mr-1"></i>Request Access</button>
-        </div>
-      </div>
-      <div class="flex items-center justify-between border border-slate-200 rounded-md px-3 py-2.5" data-owner="coordinator">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <i class="fa-solid fa-file-pdf text-red-500 flex-shrink-0"></i>
-          <div class="min-w-0">
-            <div class="text-[12.5px] text-slate-700 truncate">Company_Profile.pdf</div>
-            <div class="text-[10.5px] text-slate-400">Uploaded by you</div>
-          </div>
-        </div>
-        <div class="flex items-center gap-2 flex-shrink-0">
-          <i class="fa-solid fa-download text-slate-400 hover:text-slate-600 cursor-pointer"></i>
-          <button class="text-[10.5px] font-semibold text-sky-600 bg-sky-50 hover:bg-sky-100 px-2 py-1 rounded-md transition"><i class="fa-solid fa-pen mr-1"></i>Edit</button>
-        </div>
+    <!-- Breadcrumb and Actions -->
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+      <nav id="vaultBreadcrumb" class="flex flex-wrap items-center gap-1 text-[12.5px]"></nav>
+      <div class="flex gap-2">
+        <button id="vaultNewFolderBtn" class="text-[12px] font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 px-3 py-1.5 rounded-md transition"><i class="fa-solid fa-folder-plus mr-1.5"></i>New folder</button>
+        <button id="vaultUploadBtn" class="text-[12px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-3 py-1.5 rounded-md transition"><i class="fa-solid fa-upload mr-1.5"></i>Upload</button>
       </div>
     </div>
 
-    <button id="vaultUploadBtn" class="w-full border-2 border-dashed border-slate-300 rounded-lg h-16 flex items-center justify-center text-slate-400 hover:border-sky-400 hover:text-sky-500 transition mb-4">
-      <span class="text-[12px]"><i class="fa-solid fa-upload mr-1.5"></i>Click to upload a new file (you'll own and can edit this)</span>
-    </button>
+    <!-- Search and Filters -->
+    <div class="flex flex-wrap gap-2 mb-3">
+      <div class="relative flex-1 min-w-[180px]">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[11px]"></i>
+        <input id="vaultSearch" type="text" placeholder="Search files in this vault" class="w-full border border-slate-300 rounded-md pl-8 pr-3 py-1.5 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-sky-400">
+      </div>
+      <select id="vaultTypeFilter" class="border border-slate-300 rounded-md px-2 py-1.5 text-[12.5px] bg-white focus:outline-none focus:ring-2 focus:ring-sky-400"></select>
+      <select id="vaultInternFilter" class="border border-slate-300 rounded-md px-2 py-1.5 text-[12.5px] bg-white focus:outline-none focus:ring-2 focus:ring-sky-400"></select>
+    </div>
+
+    <!-- Upload Form -->
+    <div id="vaultUploadForm" class="hidden border border-sky-200 bg-sky-50 rounded-lg p-4 mb-3 space-y-3">
+      <div class="grid sm:grid-cols-3 gap-3">
+        <label class="block sm:col-span-3"><span class="text-[11.5px] font-semibold text-slate-600">Signed scan (PDF, JPG or PNG) *</span>
+          <input id="vaultFileInput" type="file" accept=".pdf,.jpg,.jpeg,.png" class="mt-1 block w-full text-[12px] text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-white file:text-slate-700 file:font-semibold"></label>
+        <label class="block"><span class="text-[11.5px] font-semibold text-slate-600">Document type</span>
+          <select id="vaultUploadType" class="mt-1 w-full border border-slate-300 rounded-md px-2 py-1.5 text-[12.5px] bg-white"></select></label>
+        <label class="block sm:col-span-2"><span class="text-[11.5px] font-semibold text-slate-600">Save to folder</span>
+          <select id="vaultUploadFolder" class="mt-1 w-full border border-slate-300 rounded-md px-2 py-1.5 text-[12.5px] bg-white"></select></label>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button id="vaultUploadCancel" class="text-[12px] font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 px-3 py-1.5 rounded-md transition">Cancel</button>
+        <button id="vaultUploadSave" class="text-[12px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-3 py-1.5 rounded-md transition">Upload file</button>
+      </div>
+    </div>
+
+    <!-- Folder and File List -->
+    <div id="vaultFileList" class="space-y-2"></div>
+    <input id="vaultReplaceInput" type="file" accept=".pdf,.jpg,.jpeg,.png" class="hidden">
   </div>
 </div>
 

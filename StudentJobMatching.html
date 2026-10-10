@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Internship Matching — InternConnect</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="theme.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800" data-role="student" data-page="jobs">
+<div class="flex min-h-screen">
+<button id="mobileToggle" class="lg:hidden fixed top-3 left-3 z-50 bg-slate-900 text-white w-9 h-9 rounded-md flex items-center justify-center shadow-lg"><i class="fa-solid fa-bars"></i></button>
+<aside class="fixed lg:sticky top-0 left-0 h-screen w-64 bg-slate-900 text-slate-300 flex flex-col z-40 -translate-x-full lg:translate-x-0 transition-transform duration-200" id="sidebar">
+<div class="flex items-center gap-2.5 px-5 py-5 border-b border-white/10">
+<div class="w-9 h-9 flex items-center justify-center text-sky-600 flex-shrink-0">
+<i class="fa-solid fa-link text-sm text-white"></i>
+</div>
+<div class="min-w-0">
+<div class="text-white font-bold text-[15px] leading-tight">InternConnect</div>
+<div class="text-[10.5px] text-slate-400 tracking-wide">Student &amp; Alumni Portal</div>
+</div>
+<button class="lg:hidden ml-auto w-8 h-8 rounded-md flex items-center justify-center text-slate-300 hover:bg-white/10 hover:text-white transition flex-shrink-0" id="mobileCloseBtn">
+<i class="fa-solid fa-xmark"></i>
+</button>
+</div>
+<nav class="flex-1 px-2 pt-4 space-y-0.5">
+<a class="nav-link active w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" data-tab="overview" href="StudentOverview.html">
+<i class="fa-solid fa-gauge-high w-4 text-center"></i> Overview
+      </a>
+<a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition student-only-nav" data-tab="attendance" href="StudentAttendance.html">
+<i class="fa-solid fa-calendar-check w-4 text-center"></i> Attendance
+      </a>
+<a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition student-only-nav" data-tab="classwork" href="StudentClasswork.html">
+<i class="fa-solid fa-list-check w-4 text-center"></i> Classwork &amp; Tasks
+      </a>
+<a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" data-tab="resume" href="StudentResumeBuilder.html">
+<i class="fa-solid fa-file-shield w-4 text-center"></i> Resume Builder
+      </a>
+<a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" data-tab="jobs" href="StudentJobMatching.html">
+<i class="fa-solid fa-magnifying-glass-dollar w-4 text-center"></i> <span id="jobsNavLabel">Internship Matching</span>
+</a>
+<div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold px-4 pt-4 pb-1">Session</div>
+<button class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" id="logoutBtn" title="Logout">
+<i class="fa-solid fa-right-to-bracket w-4 text-center"></i> Logout
+</button>
+</nav>
+<div class="px-5 py-4 border-t border-white/10 flex items-center gap-3">
+<div data-user="avatar" class="overflow-hidden w-8 h-8 rounded-full bg-sky-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">AS</div>
+<div class="min-w-0 flex-1">
+<div data-user="name" class="text-white text-[12.5px] font-medium truncate">Alex V. Santos</div>
+<div data-user="program" class="text-[10.5px] text-slate-400 truncate">BS Computer Science</div>
+</div>
+</div>
+</aside>
+<div id="overlay" class="hidden fixed inset-0 bg-black/40 z-30 lg:hidden"></div>
+<div class="flex-1 flex flex-col min-w-0">
+<header class="bg-white border-b border-slate-200 px-5 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-20">
+<div class="flex items-center gap-3 pl-9 lg:pl-0">
+<span class="text-slate-900 font-bold text-[15px]">InternConnect</span>
+</div>
+<div class="flex items-center gap-3 flex-wrap">
+<div class="flex items-center gap-1.5">
+<div class="toggle-wrap">
+<span class="toggle-opt active" data-role="student" id="toggleStudent">Student</span>
+<span class="toggle-opt" data-role="alumni" id="toggleAlumni">Alumni</span>
+</div>
+<span class="hidden items-center gap-1 text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full cursor-pointer whitespace-nowrap" id="alumniPendingBadge" title="Waiting for coordinator approval"><i class="fa-solid fa-clock"></i> Pending</span>
+</div>
+<div class="relative">
+<button class="relative w-9 h-9 rounded-md flex items-center justify-center text-slate-500 hover:bg-slate-100 transition" id="notifBtn">
+<i class="fa-regular fa-bell"></i>
+<span class="absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+</button>
+<div class="hidden absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-xl shadow-lg z-30 overflow-hidden" id="notifDropdown">
+<div class="px-4 py-3 border-b border-slate-100 font-semibold text-slate-900 text-sm">Notifications</div>
+<div class="divide-y divide-slate-100">
+<div class="px-4 py-3 text-[12.5px] text-slate-700 hover:bg-slate-50">Your Week 5 report is due tomorrow.</div>
+<div class="px-4 py-3 text-[12.5px] text-slate-700 hover:bg-slate-50">Coordinator approved your last accomplishment log.</div>
+<div class="px-4 py-3 text-[12.5px] text-slate-700 hover:bg-slate-50">Brightpath Software viewed your application.</div>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div data-user="avatar" class="overflow-hidden w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-xs font-semibold">AS</div>
+<div class="hidden lg:block">
+<div data-user="name" class="text-[12.5px] font-medium text-slate-900 leading-tight">Alex V. Santos</div>
+<div class="text-[10.5px] text-slate-500 leading-tight" id="stateLabel">Active Student</div>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-1 px-5 lg:px-8 py-6 pb-10">
+<section class="tab-panel space-y-5" id="tab-jobs">
+<div>
+<h1 class="text-xl font-bold text-slate-900" id="jobsTitle">Internship Matching</h1>
+<p class="text-sm text-slate-500 mt-0.5" id="jobsSubtitle">Ranked by semantic match to your declared and verified skills.</p>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3 flex flex-wrap items-center gap-2.5">
+<select class="border border-slate-200 rounded-md px-3 py-2 text-[12.5px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-400" id="courseFilter">
+<option value="">All Courses</option>
+<option value="BSCS">BS Computer Science</option>
+<option value="BSHM">BS Hospitality Management</option>
+<option value="BSBA">BS Business Administration</option>
+</select>
+<select class="hidden border border-slate-200 rounded-md px-3 py-2 text-[12.5px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-400" id="typeFilter">
+<option value="">All Types</option>
+<option value="Part-time">Part-time</option>
+<option value="Full-time">Full-time</option>
+</select>
+<select class="border border-slate-200 rounded-md px-3 py-2 text-[12.5px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-400" id="arrangementFilter">
+<option value="">Onsite / Remote / Hybrid</option>
+<option value="Onsite">Onsite</option>
+<option value="Remote">Remote</option>
+<option value="Hybrid">Hybrid</option>
+</select>
+<span class="text-[11px] text-slate-500 ml-auto">Sort:</span>
+<button class="sort-btn active text-[12px] font-semibold px-3 py-1.5 rounded-md bg-slate-900 text-white" data-sort="match">Match Score</button>
+<button class="sort-btn text-[12px] font-semibold px-3 py-1.5 rounded-md bg-white border border-slate-200 text-slate-600" data-sort="distance">Distance</button>
+</div>
+<div class="space-y-3" id="jobList">
+<div class="job-card bg-white rounded-xl border border-slate-200 shadow-sm p-4 hover:border-sky-300 transition cursor-pointer" data-arrangement="Hybrid" data-course="BSCS" data-job="qa-brightpath" data-type="Internship">
+<div class="flex items-start justify-between gap-3">
+<div>
+<div class="font-semibold text-slate-900">Junior QA &amp; Documentation Intern</div>
+<div class="text-[12px] text-slate-500 mt-0.5">Brightpath Software · <i class="fa-solid fa-location-dot text-[10px]"></i> 2.5 km away · <span class="text-slate-400">BSCS · Internship · Hybrid</span></div>
+</div>
+<span class="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200 flex-shrink-0"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>94%</span>
+</div>
+<div class="flex flex-wrap gap-1.5 mt-3">
+<span class="tag-chip matched"><i class="fa-solid fa-check"></i>SQL</span><span class="tag-chip matched"><i class="fa-solid fa-check"></i>Documentation</span><span class="tag-chip gap">Agile <span class="chip-note">gap</span></span>
+</div>
+<button class="apply-btn mt-3 text-[12.5px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-3.5 py-2 rounded-md transition">Apply Now</button>
+</div>
+<div class="job-card bg-white rounded-xl border border-slate-200 shadow-sm p-4 hover:border-sky-300 transition cursor-pointer" data-arrangement="Remote" data-course="BSCS" data-job="fe-verano" data-type="Full-time">
+<div class="flex items-start justify-between gap-3">
+<div>
+<div class="font-semibold text-slate-900">Front-End Developer</div>
+<div class="text-[12px] text-slate-500 mt-0.5">Verano Digital Studio · <i class="fa-solid fa-location-dot text-[10px]"></i> 5.8 km away · <span class="text-slate-400">BSCS · Full-time · Remote</span></div>
+</div>
+<span class="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200 flex-shrink-0"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>81%</span>
+</div>
+<div class="flex flex-wrap gap-1.5 mt-3">
+<span class="tag-chip matched"><i class="fa-solid fa-check"></i>Canva</span><span class="tag-chip gap">Figma <span class="chip-note">gap</span></span>
+</div>
+<button class="apply-btn mt-3 text-[12.5px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-3.5 py-2 rounded-md transition">Apply Now</button>
+</div>
+<div class="job-card bg-white rounded-xl border border-slate-200 shadow-sm p-4 hover:border-sky-300 transition cursor-pointer" data-arrangement="Onsite" data-course="BSHM" data-job="fd-cavitegrand" data-type="Part-time">
+<div class="flex items-start justify-between gap-3">
+<div>
+<div class="font-semibold text-slate-900">Front Desk &amp; Guest Relations Associate</div>
+<div class="text-[12px] text-slate-500 mt-0.5">Cavite Grand Hotel · <i class="fa-solid fa-location-dot text-[10px]"></i> 3.1 km away · <span class="text-slate-400">BSHM · Part-time · Onsite</span></div>
+</div>
+<span class="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200 flex-shrink-0"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>73%</span>
+</div>
+<div class="flex flex-wrap gap-1.5 mt-3">
+<span class="tag-chip matched"><i class="fa-solid fa-check"></i>Customer Service</span><span class="tag-chip gap">Events Coordination <span class="chip-note">gap</span></span>
+</div>
+<button class="apply-btn mt-3 text-[12.5px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-3.5 py-2 rounded-md transition">Apply Now</button>
+</div>
+<div class="hidden bg-slate-50 border border-dashed border-slate-300 rounded-xl p-4" id="fallbackAlert">
+<div class="flex items-start gap-2.5">
+<i class="fa-solid fa-circle-info text-slate-400 mt-0.5"></i>
+<div>
+<div class="text-[12.5px] font-semibold text-slate-700">No job postings found for the selected filters</div>
+<p class="text-[12px] text-slate-500 mt-1">Exploring O*NET Occupational Roles may help identify related opportunities, such as Junior Software QA <span class="text-slate-400">(Requires: Selenium, Jest)</span>.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+<div class="px-5 py-3.5 border-b border-slate-200"><h2 class="font-semibold text-slate-900 text-sm">Application Status</h2></div>
+<div class="overflow-x-auto">
+<table class="w-full text-sm">
+<thead>
+<tr class="text-left text-[11px] uppercase tracking-wide text-slate-400 border-b border-slate-100">
+<th class="px-5 py-2.5 font-semibold">Job Title</th><th class="px-5 py-2.5 font-semibold">Company</th><th class="px-5 py-2.5 font-semibold">Date Applied</th><th class="px-5 py-2.5 font-semibold">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100">
+<tr>
+<td class="px-5 py-3 text-slate-700">Junior QA &amp; Documentation Intern</td><td class="px-5 py-3 text-slate-600">Brightpath Software</td><td class="px-5 py-3 text-slate-500">Sept 2, 2026</td>
+<td class="px-5 py-3"><span class="text-[11px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pending</span></td>
+</tr>
+<tr>
+<td class="px-5 py-3 text-slate-700">IT Support Intern</td><td class="px-5 py-3 text-slate-600">Nova Retail Systems</td><td class="px-5 py-3 text-slate-500">Aug 28, 2026</td>
+<td class="px-5 py-3"><span class="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Accepted</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+</main>
+</div>
+</div>
+<div class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" id="jobModal">
+<div class="bg-white rounded-xl w-full max-w-lg p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+<div class="flex items-start justify-between mb-1">
+<div>
+<h3 class="font-bold text-slate-900 text-lg" id="jobModalTitle">Junior QA &amp; Documentation Intern</h3>
+<div class="text-[12.5px] text-slate-500 mt-0.5" id="jobModalCompany">Brightpath Software</div>
+</div>
+<button class="text-slate-400 hover:text-slate-600 flex-shrink-0" id="closeJobModalBtn"><i class="fa-solid fa-xmark"></i></button>
+</div>
+<div class="flex flex-wrap items-center gap-2 mt-3">
+<span class="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200" id="jobModalScore"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>94% match</span>
+<span class="text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full" id="jobModalType">Internship · Hybrid</span>
+<span class="text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full" id="jobModalLocation"><i class="fa-solid fa-location-dot mr-1"></i>Dasmariñas, Cavite · 2.5 km away</span>
+</div>
+<div class="mt-4">
+<div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Salary / Allowance</div>
+<div class="text-[13.5px] font-semibold text-slate-800" id="jobModalSalary">₱3,500 / month OJT allowance</div>
+</div>
+<div class="mt-4">
+<div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Job Description</div>
+<p class="text-[13px] text-slate-600 leading-relaxed" id="jobModalDescription">Assist the QA team in testing software releases and maintaining internal documentation for ongoing projects.</p>
+</div>
+<div class="mt-4">
+<div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Requirements</div>
+<ul class="text-[13px] text-slate-600 space-y-1 list-disc list-inside" id="jobModalRequirements"></ul>
+</div>
+<div class="mt-4 flex flex-wrap gap-1.5" id="jobModalSkillTags"></div>
+<div class="flex items-center justify-between mt-5 pt-4 border-t border-slate-100">
+<span class="text-[11.5px] text-slate-400" id="jobModalDeadline">Application deadline: Oct 10, 2026</span>
+<button class="text-[12.5px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-4 py-2.5 rounded-md transition" id="jobModalApplyBtn">Apply Now</button>
+</div>
+</div>
+</div>
+
+<!-- MODAL: Request Alumni Status -->
+<div id="alumniRequestModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl w-full max-w-sm p-6 shadow-xl text-center">
+    <div class="w-12 h-12 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center text-lg mx-auto mb-3"><i class="fa-solid fa-graduation-cap"></i></div>
+    <h3 class="font-bold text-slate-900">Request Alumni Status</h3>
+    <p class="text-[12.5px] text-slate-500 mt-1.5 mb-5">This sends a request to your OJT coordinator for approval. Your account stays in Student mode until they approve it.</p>
+    <div class="flex gap-2.5">
+      <button id="cancelAlumniRequestBtn" class="flex-1 text-[12.5px] font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 px-3.5 py-2.5 rounded-md transition">Cancel</button>
+      <button id="sendAlumniRequestBtn" class="flex-1 text-[12.5px] font-semibold text-white bg-slate-900 hover:bg-slate-800 px-3.5 py-2.5 rounded-md transition">Send Request</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer"></div>
+<script src="script.js"></script>
+</body>
+</html>

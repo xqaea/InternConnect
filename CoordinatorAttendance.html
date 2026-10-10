@@ -60,6 +60,10 @@
             <span id="waitingBadge" class="sidebar-text bg-sky-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">5</span>
         </button>
 
+        <button data-tab="placements" class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Placements">
+            <i class="fa-solid fa-route w-4 text-center"></i> <span class="sidebar-text">Placements</span>
+        </button>
+
         <button data-tab="classwork" class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Classwork">
             <i class="fa-solid fa-clipboard-list w-4 text-center"></i> <span class="sidebar-text">Classwork and Tasks</span>
         </button>
@@ -172,11 +176,16 @@
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 class="text-xl font-bold text-slate-900">Student Attendance & Progress</h1>
-            <p class="text-sm text-slate-500 mt-0.5">Tracking rendered hours across all BSCS deployments.</p>
+            <p class="text-sm text-slate-500 mt-0.5">Deployed interns only. Students still being placed are on the <a href="CoordinatorPlacements.html" class="text-sky-600 hover:underline">Placements</a> page.</p>
           </div>
-          <button class="export-btn text-[12.5px] font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-md transition flex items-center gap-1.5">
-            <i class="fa-solid fa-file-export"></i> Export (PDF/Excel)
-          </button>
+          <div class="flex flex-wrap gap-2">
+            <button id="holidaysBtn" class="text-[12.5px] font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-md transition flex items-center gap-1.5">
+              <i class="fa-solid fa-calendar-xmark"></i> Holidays &amp; no-work days <span id="holidaysCount" class="text-[11px] font-medium text-slate-400"></span>
+            </button>
+            <button class="export-btn text-[12.5px] font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-md transition flex items-center gap-1.5">
+              <i class="fa-solid fa-file-export"></i> Export (PDF/Excel)
+            </button>
+          </div>
         </div>
 
         <!-- Search and Filters -->
@@ -185,12 +194,7 @@
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
             <input id="studentSearch" type="text" placeholder="Search student name or ID..." class="w-full border border-slate-200 rounded-md pl-8 pr-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400">
           </div>
-          <select id="companyFilter" class="border border-slate-200 rounded-md px-3 py-2 text-[13px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-400">
-            <option value="">All Partner Companies</option>
-            <option value="Brightpath Software">Brightpath Software</option>
-            <option value="Nova Retail Systems">Nova Retail Systems</option>
-            <option value="Verano Digital Studio">Verano Digital Studio</option>
-          </select>
+          <select id="companyFilter" class="border border-slate-200 rounded-md px-3 py-2 text-[13px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-400"><option value="">All Partner Companies</option></select>
           <select id="statusFilter" class="border border-slate-200 rounded-md px-3 py-2 text-[13px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-400">
             <option value="">All Attendance Status</option>
             <option value="On-site">On-site</option>
@@ -216,60 +220,7 @@
                 <th class="px-5 py-2.5 font-semibold"></th>
               </tr>
             </thead>
-            <tbody id="attendanceTbody" class="divide-y divide-slate-100">
-              <tr data-name="aiyu t. 2023-0141" data-company="Brightpath Software" data-status="Hybrid">
-                <td class="px-5 py-3"><div class="flex items-center gap-2.5"><div class="w-7 h-7 rounded-full bg-sky-100 text-sky-700 text-[11px] font-semibold flex items-center justify-center">AT</div><div><div>Aiyu T.</div><div class="text-[10.5px] text-slate-400">2023-0141</div></div></div></td>
-                <td class="px-5 py-3 text-[13px] text-slate-600">Brightpath Software</td>
-                <td class="px-5 py-3">
-                  <div class="flex items-center gap-2">
-                    <div class="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-sky-600" style="width:66%"></div></div>
-                    <span class="text-[11.5px] text-slate-500">320 / 486</span>
-                  </div>
-                </td>
-                <td class="px-5 py-3"><span class="text-[11px] font-medium text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full">Hybrid</span></td>
-                <td class="px-5 py-3"><span class="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">On Track</span></td>
-                <td class="px-5 py-3"><button class="text-[11.5px] font-medium text-sky-600 hover:text-sky-700">View Log</button></td>
-              </tr>
-              <tr data-name="leo a. 2023-0088" data-company="Nova Retail Systems" data-status="On-site">
-                <td class="px-5 py-3"><div class="flex items-center gap-2.5"><div class="w-7 h-7 rounded-full bg-slate-100 text-slate-600 text-[11px] font-semibold flex items-center justify-center">LA</div><div><div>Leo A.</div><div class="text-[10.5px] text-slate-400">2023-0088</div></div></div></td>
-                <td class="px-5 py-3 text-[13px] text-slate-600">Nova Retail Systems</td>
-                <td class="px-5 py-3">
-                  <div class="flex items-center gap-2">
-                    <div class="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-sky-600" style="width:71%"></div></div>
-                    <span class="text-[11.5px] text-slate-500">344 / 486</span>
-                  </div>
-                </td>
-                <td class="px-5 py-3"><span class="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">On-site</span></td>
-                <td class="px-5 py-3"><span class="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">On Track</span></td>
-                <td class="px-5 py-3"><button class="text-[11.5px] font-medium text-sky-600 hover:text-sky-700">View Log</button></td>
-              </tr>
-              <tr class="bg-red-50/40" data-name="jomari d. 2023-0172" data-company="Verano Digital Studio" data-status="Remote">
-                <td class="px-5 py-3"><div class="flex items-center gap-2.5"><div class="w-7 h-7 rounded-full bg-red-100 text-red-600 text-[11px] font-semibold flex items-center justify-center">JD</div><div><div>Jomari D.</div><div class="text-[10.5px] text-slate-400">2023-0172</div></div></div></td>
-                <td class="px-5 py-3 text-[13px] text-slate-600">Verano Digital Studio</td>
-                <td class="px-5 py-3">
-                  <div class="flex items-center gap-2">
-                    <div class="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-red-500" style="width:38%"></div></div>
-                    <span class="text-[11.5px] text-slate-500">187 / 486</span>
-                  </div>
-                </td>
-                <td class="px-5 py-3"><span class="text-[11px] font-medium text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full">Remote</span></td>
-                <td class="px-5 py-3"><span class="inline-flex items-center gap-1 text-[11px] font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">At-Risk</span></td>
-                <td class="px-5 py-3"><button class="text-[11.5px] font-medium text-sky-600 hover:text-sky-700">View Log</button></td>
-              </tr>
-              <tr data-name="kaye p. 2023-0056" data-company="Brightpath Software" data-status="On-site">
-                <td class="px-5 py-3"><div class="flex items-center gap-2.5"><div class="w-7 h-7 rounded-full bg-slate-100 text-slate-600 text-[11px] font-semibold flex items-center justify-center">KP</div><div><div>Kaye P.</div><div class="text-[10.5px] text-slate-400">2023-0056</div></div></div></td>
-                <td class="px-5 py-3 text-[13px] text-slate-600">Brightpath Software</td>
-                <td class="px-5 py-3">
-                  <div class="flex items-center gap-2">
-                    <div class="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-sky-600" style="width:80%"></div></div>
-                    <span class="text-[11.5px] text-slate-500">389 / 486</span>
-                  </div>
-                </td>
-                <td class="px-5 py-3"><span class="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">On-site</span></td>
-                <td class="px-5 py-3"><span class="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">On Track</span></td>
-                <td class="px-5 py-3"><button class="text-[11.5px] font-medium text-sky-600 hover:text-sky-700">View Log</button></td>
-              </tr>
-            </tbody>
+            <tbody id="attendanceTbody" class="divide-y divide-slate-100"></tbody>
           </table>
           <!-- No Results Message -->
           <div id="attendanceNoResults" class="hidden py-12 flex flex-col items-center text-center">

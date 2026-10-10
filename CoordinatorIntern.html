@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>InternConnect - Classwork and Tasks</title>
+    <title>InternConnect - Intern Profile</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -64,11 +64,11 @@
             <i class="fa-solid fa-route w-4 text-center"></i> <span class="sidebar-text">Placements</span>
         </button>
 
-        <button data-tab="classwork" class="nav-link active w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Classwork">
+        <button data-tab="classwork" class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Classwork">
             <i class="fa-solid fa-clipboard-list w-4 text-center"></i> <span class="sidebar-text">Classwork and Tasks</span>
         </button>
 
-        <button data-tab="attendance" class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Attendance & Progress">
+        <button data-tab="attendance" class="nav-link active w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Attendance & Progress">
             <i class="fa-solid fa-user-clock w-4 text-center"></i> <span class="sidebar-text">Attendance & Progress</span>
         </button>
 
@@ -170,34 +170,10 @@
 
         <main class="flex-1 px-5 lg:px-8 py-6 pb-24">
 
-            <!-- Classwork and Tasks -->
-      <section id="tab-classwork" class="space-y-4">
-        <!-- Page Title and Create Task Button -->
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 class="text-xl font-bold text-slate-900">Classwork & Tasks</h1>
-            <p class="text-sm text-slate-500 mt-0.5">Post accomplishment tasks, track submissions, and review daily logs.</p>
-          </div>
-          <button id="openTaskModalBtn" class="text-[12.5px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-3.5 py-2 rounded-md transition"><i class="fa-solid fa-plus mr-1.5"></i>Create New Task</button>
-        </div>
-
-                <!-- Batch Selector -->
-        <div class="flex flex-wrap items-center gap-2.5 bg-white rounded-xl border border-slate-200 p-3 shadow-sm">
-          <label for="batchSelect" class="text-[12px] font-medium text-slate-600">Batch</label>
-          <select id="batchSelect" class="border border-slate-300 rounded-md px-3 py-1.5 text-[12.5px] bg-white focus:outline-none focus:ring-2 focus:ring-sky-400"></select>
-          <span id="batchStatusBadge" class="text-[10.5px] font-semibold border px-2 py-0.5 rounded-full"></span>
-          <span class="sm:ml-auto text-[11.5px] text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full"><i class="fa-solid fa-clock mr-1"></i><span id="pendingLogsCount">8</span> logs pending review · open a task to approve, revise, or reject</span>
-        </div>
-
-        <!-- Active / Archived -->
-        <div class="flex items-center gap-1 bg-white rounded-lg border border-slate-200 p-1 w-fit shadow-sm">
-          <button data-filter="active" class="task-filter active text-[12px] font-semibold px-3 py-1.5 rounded-md transition">Active <span id="taskCountActive" class="opacity-70"></span></button>
-          <button data-filter="archived" class="task-filter text-[12px] font-semibold px-3 py-1.5 rounded-md transition">Archived <span id="taskCountArchived" class="opacity-70"></span></button>
-        </div>
-
-        <!-- Task Cards (filled by script.js) -->
-        <div id="taskList" class="space-y-3"></div>
-        <div id="taskListEmpty" class="hidden text-center text-[12.5px] text-slate-400 bg-white border border-dashed border-slate-300 rounded-xl py-10"></div>
+      <!-- Intern Profile (filled by script.js) -->
+      <section class="space-y-4">
+        <button id="profileBackBtn" class="text-[12.5px] text-slate-500 hover:text-slate-700"><i class="fa-solid fa-arrow-left mr-1.5"></i>Back</button>
+        <div id="internProfile" class="space-y-4"></div>
       </section>
 
         </main>
@@ -209,71 +185,18 @@
     </div>
 </div>
 
-<!-- Create New Task Modal -->
-<div id="taskModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl w-full max-w-md p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-    <div class="flex items-center justify-between mb-4">
-      <h3 id="taskModalTitle" class="font-bold text-slate-900">Create New Task</h3>
-      <button id="closeTaskModalBtn" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="space-y-3">
-      <p id="taskEditNote" class="hidden text-[11.5px] text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2"><i class="fa-solid fa-circle-info mr-1"></i>Students already turned in work for this task. They will see the updated details; their submissions and grades stay.</p>
-      <div>
-        <label class="text-[12.5px] font-medium text-slate-600 block mb-1">Task Title</label>
-        <input id="taskTitleInput" type="text" placeholder="e.g. Week 1 Accomplishment Report" class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400">
-      </div>
-      <div>
-        <label class="text-[12.5px] font-medium text-slate-600 block mb-1">Instructions / Description</label>
-        <textarea id="taskDescInput" rows="3" placeholder="Describe what students need to submit..." class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400"></textarea>
-      </div>
-      
-      <!-- Template: the file students fill in (e.g. the accomplishment report form) -->
-      <div>
-        <label class="text-[12.5px] font-medium text-slate-600 block mb-1">Template <span class="font-normal text-slate-400">(the file students fill in)</span></label>
-        <input type="file" id="taskTemplate" class="w-full text-[13px] text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-[12.5px] file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100 border border-slate-300 rounded-md p-1 focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer">
-        <p id="taskTemplateCurrent" class="hidden text-[11.5px] text-slate-500 mt-1"></p>
-      </div>
-      <!-- Attachments: supporting files like rubrics or references -->
-      <div>
-        <label class="text-[12.5px] font-medium text-slate-600 block mb-1">Attachments <span class="font-normal text-slate-400">(supporting files, e.g. rubric or reference)</span></label>
-        <input type="file" id="taskAttachments" multiple class="w-full text-[13px] text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-[12.5px] file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100 border border-slate-300 rounded-md p-1 focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer">
-        <p id="taskAttachCurrent" class="hidden text-[11.5px] text-slate-500 mt-1"></p>
-      </div>
-
-      <div class="grid grid-cols-2 gap-2.5">
-        <div>
-          <label class="text-[12.5px] font-medium text-slate-600 block mb-1">Due Date</label>
-          <input id="taskDueDate" type="date" class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400">
-        </div>
-        <div>
-          <label class="text-[12.5px] font-medium text-slate-600 block mb-1">Due Time</label>
-          <input id="taskDueTime" type="time" value="23:59" class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400">
-        </div>
-      </div>
-      <div>
-        <label class="text-[12.5px] font-medium text-slate-600 block mb-1">Max Points</label>
-        <input id="taskMaxPoints" type="number" min="1" value="100" class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400">
-      </div>
-      <div class="flex items-center justify-between border border-slate-200 rounded-md px-3 py-2.5">
-        <label for="repeatToggle" class="text-[12.5px] font-medium text-slate-600"> Repeat Task</label>
-        <input id="repeatToggle" type="checkbox" class="w-4 h-4 rounded border-slate-300 text-sky-600 focus:ring-sky-400">
-      </div>
-      <div id="repeatIntervalRow" class="hidden">
-        <label class="text-[12.5px] font-medium text-slate-600 block mb-1">Repeat every</label>
-        <select id="taskRepeatSelect" class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400">
-          <option>Friday</option><option>Monday</option><option>Every 2 weeks</option><option>Last day of month</option>
-        </select>
-      </div>
-    </div>
-    <div class="flex justify-end gap-2.5 mt-5">
-      <button id="cancelTaskBtn" class="text-[12.5px] font-medium text-slate-500 hover:text-slate-700 px-3.5 py-2">Cancel</button>
-      <button id="postTaskBtn" class="text-[12.5px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-4 py-2.5 rounded-md transition">Post Task</button>
-    </div>
-  </div>
-</div>
-
 <!-- Toast Container -->
 <div id="toastContainer"></div>
+
+<div id="attPhotoModal" class="hidden fixed inset-0 bg-black/40 z-50 items-center justify-center p-4">
+  <div class="bg-white rounded-xl w-full max-w-md p-6 shadow-xl">
+    <div class="flex items-center justify-between mb-4">
+      <h3 id="attPhotoTitle" class="font-bold text-slate-900">Clock-in record</h3>
+      <button id="attPhotoClose" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="attPhotoBody"></div>
+  </div>
+</div>
 
 <script src="script.js"></script>
 </body>

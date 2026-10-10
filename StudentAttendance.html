@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance — InternConnect</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="theme.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800" data-role="student" data-page="attendance">
+<div class="flex min-h-screen">
+<button id="mobileToggle" class="lg:hidden fixed top-3 left-3 z-50 bg-slate-900 text-white w-9 h-9 rounded-md flex items-center justify-center shadow-lg"><i class="fa-solid fa-bars"></i></button>
+<aside class="fixed lg:sticky top-0 left-0 h-screen w-64 bg-slate-900 text-slate-300 flex flex-col z-40 -translate-x-full lg:translate-x-0 transition-transform duration-200" id="sidebar">
+<div class="flex items-center gap-2.5 px-5 py-5 border-b border-white/10">
+<div class="w-9 h-9 flex items-center justify-center text-sky-600 flex-shrink-0">
+<i class="fa-solid fa-link text-sm text-white"></i>
+</div>
+<div class="min-w-0">
+<div class="text-white font-bold text-[15px] leading-tight">InternConnect</div>
+<div class="text-[10.5px] text-slate-400 tracking-wide">Student &amp; Alumni Portal</div>
+</div>
+<button class="lg:hidden ml-auto w-8 h-8 rounded-md flex items-center justify-center text-slate-300 hover:bg-white/10 hover:text-white transition flex-shrink-0" id="mobileCloseBtn">
+<i class="fa-solid fa-xmark"></i>
+</button>
+</div>
+<nav class="flex-1 px-2 pt-4 space-y-0.5">
+<a class="nav-link active w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" data-tab="overview" href="StudentOverview.html">
+<i class="fa-solid fa-gauge-high w-4 text-center"></i> Overview
+      </a>
+<a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition student-only-nav" data-tab="attendance" href="StudentAttendance.html">
+<i class="fa-solid fa-calendar-check w-4 text-center"></i> Attendance
+      </a>
+<a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition student-only-nav" data-tab="classwork" href="StudentClasswork.html">
+<i class="fa-solid fa-list-check w-4 text-center"></i> Classwork &amp; Tasks
+      </a>
+<a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" data-tab="resume" href="StudentResumeBuilder.html">
+<i class="fa-solid fa-file-shield w-4 text-center"></i> Resume Builder
+      </a>
+<a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" data-tab="jobs" href="StudentJobMatching.html">
+<i class="fa-solid fa-magnifying-glass-dollar w-4 text-center"></i> <span id="jobsNavLabel">Internship Matching</span>
+</a>
+<div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold px-4 pt-4 pb-1">Session</div>
+<button class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" id="logoutBtn" title="Logout">
+<i class="fa-solid fa-right-to-bracket w-4 text-center"></i> Logout
+</button>
+</nav>
+<div class="px-5 py-4 border-t border-white/10 flex items-center gap-3">
+<div data-user="avatar" class="overflow-hidden w-8 h-8 rounded-full bg-sky-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">AS</div>
+<div class="min-w-0 flex-1">
+<div data-user="name" class="text-white text-[12.5px] font-medium truncate">Alex V. Santos</div>
+<div data-user="program" class="text-[10.5px] text-slate-400 truncate">BS Computer Science</div>
+</div>
+</div>
+</aside>
+<div id="overlay" class="hidden fixed inset-0 bg-black/40 z-30 lg:hidden"></div>
+<div class="flex-1 flex flex-col min-w-0">
+<header class="bg-white border-b border-slate-200 px-5 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-20">
+<div class="flex items-center gap-3 pl-9 lg:pl-0">
+<span class="text-slate-900 font-bold text-[15px]">InternConnect</span>
+</div>
+<div class="flex items-center gap-3 flex-wrap">
+<div class="flex items-center gap-1.5">
+<div class="toggle-wrap">
+<span class="toggle-opt active" data-role="student" id="toggleStudent">Student</span>
+<span class="toggle-opt" data-role="alumni" id="toggleAlumni">Alumni</span>
+</div>
+<span class="hidden items-center gap-1 text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full cursor-pointer whitespace-nowrap" id="alumniPendingBadge" title="Waiting for coordinator approval"><i class="fa-solid fa-clock"></i> Pending</span>
+</div>
+<div class="relative">
+<button class="relative w-9 h-9 rounded-md flex items-center justify-center text-slate-500 hover:bg-slate-100 transition" id="notifBtn">
+<i class="fa-regular fa-bell"></i>
+<span class="absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+</button>
+<div class="hidden absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-xl shadow-lg z-30 overflow-hidden" id="notifDropdown">
+<div class="px-4 py-3 border-b border-slate-100 font-semibold text-slate-900 text-sm">Notifications</div>
+<div class="divide-y divide-slate-100">
+<div class="px-4 py-3 text-[12.5px] text-slate-700 hover:bg-slate-50">Your Week 5 report is due tomorrow.</div>
+<div class="px-4 py-3 text-[12.5px] text-slate-700 hover:bg-slate-50">Coordinator approved your last accomplishment log.</div>
+<div class="px-4 py-3 text-[12.5px] text-slate-700 hover:bg-slate-50">Brightpath Software viewed your application.</div>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div data-user="avatar" class="overflow-hidden w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-xs font-semibold">AS</div>
+<div class="hidden lg:block">
+<div data-user="name" class="text-[12.5px] font-medium text-slate-900 leading-tight">Alex V. Santos</div>
+<div class="text-[10.5px] text-slate-500 leading-tight" id="stateLabel">Active Student</div>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-1 px-5 lg:px-8 py-6 pb-10">
+<section class="tab-panel space-y-5" id="tab-attendance">
+<div>
+<h1 class="text-xl font-bold text-slate-900">Attendance</h1>
+<p class="text-sm text-slate-500 mt-0.5">Time in with your location and photo, then track your monthly calendar.</p>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5" id="timeInForm">
+<h2 class="font-semibold text-slate-900 text-sm mb-3">Today's Attendance</h2>
+<div class="flex flex-wrap items-center justify-between gap-3" id="timeInPrompt">
+<div class="text-[12.5px] text-slate-500">Time In requires your location and camera access so the system can record a verified attendance photo and timestamp.</div>
+<button class="text-[13px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-4 py-2.5 rounded-md transition flex-shrink-0" id="timeInBtn"><i class="fa-solid fa-location-dot mr-1.5"></i>Time In</button>
+</div>
+<div class="hidden items-center justify-between gap-3" id="timeInConfirmation">
+<div class="flex items-center gap-3 min-w-0">
+<div class="hidden w-12 h-12 rounded-md overflow-hidden border border-slate-200 bg-slate-100 flex-shrink-0" id="timeInPhotoPreview">
+<img alt="Attendance photo" class="w-full h-full object-cover" id="timeInPhoto"/>
+</div>
+<div class="text-[12.5px] text-slate-600">
+<div class="font-semibold text-emerald-700"><i class="fa-solid fa-circle-check mr-1"></i>Time in recorded</div>
+<div class="text-slate-400 mt-0.5">📍 Brightpath Software, Dasmariñas · <span id="timeInStamp">8:02 AM</span></div>
+</div>
+</div>
+<button class="text-[13px] font-semibold text-white bg-slate-900 hover:bg-slate-800 px-4 py-2.5 rounded-md transition flex-shrink-0" id="timeOutBtn"><i class="fa-solid fa-location-dot mr-1.5"></i>Time Out</button>
+</div>
+<div class="hidden items-center gap-3 mt-3 pt-3 border-t border-slate-100" id="timeOutConfirmation">
+<div class="text-[12.5px] text-slate-600">
+<div class="font-semibold text-emerald-700"><i class="fa-solid fa-circle-check mr-1"></i>Time out recorded — day complete</div>
+<div class="text-slate-400 mt-0.5"><span id="timeOutStamp">5:10 PM</span> · Total: <span id="hoursTotal">8.1</span> hrs logged today</div>
+</div>
+</div>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-semibold text-slate-900 text-sm">September 2026</h2>
+<div class="flex items-center gap-3 text-[11px] text-slate-400">
+<span><span class="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-100 border border-emerald-300 mr-1"></span>Present</span>
+<span><span class="inline-block w-2.5 h-2.5 rounded-sm bg-red-100 border border-red-300 mr-1"></span>Absent</span>
+</div>
+</div>
+<div class="grid grid-cols-7 gap-1.5 text-center text-[10.5px] text-slate-400 mb-1.5">
+<div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+</div>
+<div class="grid grid-cols-7 gap-1.5" id="attendanceCalendar"></div>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+<div class="px-5 py-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+<h2 class="font-semibold text-slate-900 text-sm">Attendance Summary</h2>
+<div class="flex flex-wrap gap-2 text-[11.5px]" id="attendanceStats"></div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-sm min-w-[680px]">
+<thead>
+<tr class="text-left text-[11px] uppercase tracking-wide text-slate-400 border-b border-slate-100">
+<th class="px-5 py-2.5 font-semibold">Date</th><th class="px-5 py-2.5 font-semibold">Photo</th><th class="px-5 py-2.5 font-semibold">Time In</th><th class="px-5 py-2.5 font-semibold">Time Out</th><th class="px-5 py-2.5 font-semibold">GPS</th><th class="px-5 py-2.5 font-semibold">Hours</th><th class="px-5 py-2.5 font-semibold">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100" id="attendanceSummaryBody"></tbody>
+</table>
+</div>
+</div>
+</section>
+</main>
+</div>
+</div>
+<div class="hidden fixed inset-0 bg-black/40 z-[70] flex items-center justify-center p-4" id="attendancePermissionModal">
+<div class="bg-white rounded-xl w-full max-w-sm p-6 shadow-xl">
+<div class="w-12 h-12 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center text-lg mx-auto mb-3"><i class="fa-solid fa-camera"></i></div>
+<h3 class="font-bold text-slate-900 text-center">Camera &amp; Location Access</h3>
+<p class="text-[12.5px] text-slate-500 text-center mt-1.5 mb-5">To record Time In, InternConnect needs camera access for your attendance photo and location access to verify where you clocked in. Your browser may show permission prompts next.</p>
+<div class="flex gap-2.5">
+<button class="flex-1 text-[12.5px] font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 px-3.5 py-2.5 rounded-md transition" id="cancelAttendancePermissionBtn">Cancel</button>
+<button class="flex-1 text-[12.5px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-3.5 py-2.5 rounded-md transition" id="allowAttendancePermissionBtn">Allow &amp; Continue</button>
+</div>
+</div>
+</div><div class="hidden fixed inset-0 bg-black/50 z-[75] flex items-center justify-center p-4" id="attendanceCameraModal">
+<div class="bg-white rounded-xl w-full max-w-md p-5 shadow-xl">
+<div class="flex items-center justify-between mb-3">
+<div>
+<h3 class="font-bold text-slate-900">Take Attendance Photo</h3>
+<p class="text-[11.5px] text-slate-400 mt-0.5">Position your face inside the frame, then capture.</p>
+</div>
+<button class="w-8 h-8 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600" id="cancelAttendanceCameraBtn"><i class="fa-solid fa-xmark"></i></button>
+</div>
+<div class="rounded-lg overflow-hidden bg-slate-900 aspect-video relative">
+<video autoplay="" class="w-full h-full object-cover" id="attendanceCamera" muted="" playsinline=""></video>
+<div class="absolute inset-0 pointer-events-none border-2 border-white/40 rounded-lg m-8"></div>
+</div>
+<canvas class="hidden" id="attendanceCanvas"></canvas>
+<div class="flex gap-2.5 mt-4">
+<button class="hidden flex-1 text-[12.5px] font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 px-3.5 py-2.5 rounded-md transition" id="retakeAttendancePhotoBtn">Retake</button>
+<button class="flex-1 text-[12.5px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-3.5 py-2.5 rounded-md transition" id="captureAttendancePhotoBtn"><i class="fa-solid fa-camera mr-1.5"></i>Capture Photo</button>
+<button class="hidden flex-1 text-[12.5px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2.5 rounded-md transition" id="confirmAttendancePhotoBtn">Confirm Time In</button>
+</div>
+</div>
+</div>
+
+<!-- MODAL: Request Alumni Status -->
+<div id="alumniRequestModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl w-full max-w-sm p-6 shadow-xl text-center">
+    <div class="w-12 h-12 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center text-lg mx-auto mb-3"><i class="fa-solid fa-graduation-cap"></i></div>
+    <h3 class="font-bold text-slate-900">Request Alumni Status</h3>
+    <p class="text-[12.5px] text-slate-500 mt-1.5 mb-5">This sends a request to your OJT coordinator for approval. Your account stays in Student mode until they approve it.</p>
+    <div class="flex gap-2.5">
+      <button id="cancelAlumniRequestBtn" class="flex-1 text-[12.5px] font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 px-3.5 py-2.5 rounded-md transition">Cancel</button>
+      <button id="sendAlumniRequestBtn" class="flex-1 text-[12.5px] font-semibold text-white bg-slate-900 hover:bg-slate-800 px-3.5 py-2.5 rounded-md transition">Send Request</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer"></div>
+<script src="script.js"></script>
+</body>
+</html>

@@ -60,6 +60,10 @@
             <span id="waitingBadge" class="sidebar-text bg-sky-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">5</span>
         </button>
 
+        <button data-tab="placements" class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Placements">
+            <i class="fa-solid fa-route w-4 text-center"></i> <span class="sidebar-text">Placements</span>
+        </button>
+
         <button data-tab="classwork" class="nav-link active w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Classwork">
             <i class="fa-solid fa-clipboard-list w-4 text-center"></i> <span class="sidebar-text">Classwork and Tasks</span>
         </button>
@@ -175,19 +179,24 @@
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
           <div class="flex items-start justify-between gap-3">
             <div>
-              <h1 id="taskDetailTitle" class="text-lg font-bold text-slate-900">Week 5 Accomplishment Report</h1>
+              <div class="flex items-center gap-2 flex-wrap"><h1 id="taskDetailTitle" class="text-lg font-bold text-slate-900">Week 5 Accomplishment Report</h1><span id="taskDetailStatus" class="hidden text-[10.5px] font-semibold border px-2 py-0.5 rounded-full"></span></div>
               <p id="taskDetailInstructions" class="text-[12.5px] text-slate-500 mt-1">Submit your weekly summary covering Sept 15–19. Include hours rendered and key tasks completed.</p>
               <div class="flex items-center gap-3 mt-2 text-[11.5px] text-slate-400 flex-wrap">
                 <span id="taskDetailDue"><i class="fa-regular fa-calendar mr-1"></i>Due Sept 19, 11:59 PM</span>
-                <span id="taskDetailAttachment"><i class="fa-solid fa-paperclip mr-1"></i><a href="#" class="text-sky-600 hover:underline">Week5_Report_Template.docx</a></span>
+                <span id="taskDetailAttachment"><i class="fa-regular fa-file-lines mr-1"></i>Template: <a href="#" class="text-sky-600 hover:underline">Week5_Report_Template.docx</a></span>
+                <span id="taskDetailAttachList" class="hidden"><i class="fa-solid fa-paperclip mr-1"></i><span id="taskDetailAttachNames"></span></span>
               </div>
             </div>
-            <span id="taskDetailCount" class="text-[11px] font-semibold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-200 flex-shrink-0">62 / 85 Turned In</span>
+            <div class="flex items-center gap-2 flex-shrink-0">
+              <span id="taskDetailCount" class="text-[11px] font-semibold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-200">62 / 85 Turned In</span>
+              <button id="td-editTaskBtn" class="text-[11.5px] font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 px-2.5 py-1 rounded-md transition"><i class="fa-solid fa-pen mr-1"></i>Edit</button>
+            </div>
           </div>
         </div>
 
         <!-- Split View -->
-        <div class="grid lg:grid-cols-[280px_1fr] gap-4">
+        <div id="taskNoSubs" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm p-10 text-center"><i class="fa-solid fa-inbox text-2xl text-slate-300"></i><div class="text-[13px] text-slate-500 mt-2">No submissions yet. Turned-in reports will show up here for approval.</div></div>
+        <div id="taskSplit" class="grid lg:grid-cols-[280px_1fr] gap-4">
           <!-- Submissions list -->
           <div id="taskSubmissionsList" class="bg-white rounded-xl border border-slate-200 shadow-sm p-2 space-y-1.5 h-fit"></div>
 

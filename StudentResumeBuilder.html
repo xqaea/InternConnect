@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resume Builder — InternConnect</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="theme.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800" data-role="student" data-page="resume">
+<div class="flex min-h-screen">
+<button id="mobileToggle" class="lg:hidden fixed top-3 left-3 z-50 bg-slate-900 text-white w-9 h-9 rounded-md flex items-center justify-center shadow-lg"><i class="fa-solid fa-bars"></i></button>
+<aside class="fixed lg:sticky top-0 left-0 h-screen w-64 bg-slate-900 text-slate-300 flex flex-col z-40 -translate-x-full lg:translate-x-0 transition-transform duration-200" id="sidebar">
+<div class="flex items-center gap-2.5 px-5 py-5 border-b border-white/10">
+<div class="w-9 h-9 flex items-center justify-center text-sky-600 flex-shrink-0">
+<i class="fa-solid fa-link text-sm text-white"></i>
+</div>
+<div class="min-w-0">
+<div class="text-white font-bold text-[15px] leading-tight">InternConnect</div>
+<div class="text-[10.5px] text-slate-400 tracking-wide">Student &amp; Alumni Portal</div>
+</div>
+<button class="lg:hidden ml-auto w-8 h-8 rounded-md flex items-center justify-center text-slate-300 hover:bg-white/10 hover:text-white transition flex-shrink-0" id="mobileCloseBtn">
+<i class="fa-solid fa-xmark"></i>
+</button>
+</div>
+<nav class="flex-1 px-2 pt-4 space-y-0.5">
+<a class="nav-link active w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" data-tab="overview" href="StudentOverview.html">
+<i class="fa-solid fa-gauge-high w-4 text-center"></i> Overview
+      </a>
+<a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition student-only-nav" data-tab="attendance" href="StudentAttendance.html">
+<i class="fa-solid fa-calendar-check w-4 text-center"></i> Attendance
+      </a>
+<a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition student-only-nav" data-tab="classwork" href="StudentClasswork.html">
+<i class="fa-solid fa-list-check w-4 text-center"></i> Classwork &amp; Tasks
+      </a>
+<a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" data-tab="resume" href="StudentResumeBuilder.html">
+<i class="fa-solid fa-file-shield w-4 text-center"></i> Resume Builder
+      </a>
+<a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" data-tab="jobs" href="StudentJobMatching.html">
+<i class="fa-solid fa-magnifying-glass-dollar w-4 text-center"></i> <span id="jobsNavLabel">Internship Matching</span>
+</a>
+<div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold px-4 pt-4 pb-1">Session</div>
+<button class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" id="logoutBtn" title="Logout">
+<i class="fa-solid fa-right-to-bracket w-4 text-center"></i> Logout
+</button>
+</nav>
+<div class="px-5 py-4 border-t border-white/10 flex items-center gap-3">
+<div data-user="avatar" class="overflow-hidden w-8 h-8 rounded-full bg-sky-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">AS</div>
+<div class="min-w-0 flex-1">
+<div data-user="name" class="text-white text-[12.5px] font-medium truncate">Alex V. Santos</div>
+<div data-user="program" class="text-[10.5px] text-slate-400 truncate">BS Computer Science</div>
+</div>
+</div>
+</aside>
+<div id="overlay" class="hidden fixed inset-0 bg-black/40 z-30 lg:hidden"></div>
+<div class="flex-1 flex flex-col min-w-0">
+<header class="bg-white border-b border-slate-200 px-5 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-20">
+<div class="flex items-center gap-3 pl-9 lg:pl-0">
+<span class="text-slate-900 font-bold text-[15px]">InternConnect</span>
+</div>
+<div class="flex items-center gap-3 flex-wrap">
+<div class="flex items-center gap-1.5">
+<div class="toggle-wrap">
+<span class="toggle-opt active" data-role="student" id="toggleStudent">Student</span>
+<span class="toggle-opt" data-role="alumni" id="toggleAlumni">Alumni</span>
+</div>
+<span class="hidden items-center gap-1 text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full cursor-pointer whitespace-nowrap" id="alumniPendingBadge" title="Waiting for coordinator approval"><i class="fa-solid fa-clock"></i> Pending</span>
+</div>
+<div class="relative">
+<button class="relative w-9 h-9 rounded-md flex items-center justify-center text-slate-500 hover:bg-slate-100 transition" id="notifBtn">
+<i class="fa-regular fa-bell"></i>
+<span class="absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+</button>
+<div class="hidden absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-xl shadow-lg z-30 overflow-hidden" id="notifDropdown">
+<div class="px-4 py-3 border-b border-slate-100 font-semibold text-slate-900 text-sm">Notifications</div>
+<div class="divide-y divide-slate-100">
+<div class="px-4 py-3 text-[12.5px] text-slate-700 hover:bg-slate-50">Your Week 5 report is due tomorrow.</div>
+<div class="px-4 py-3 text-[12.5px] text-slate-700 hover:bg-slate-50">Coordinator approved your last accomplishment log.</div>
+<div class="px-4 py-3 text-[12.5px] text-slate-700 hover:bg-slate-50">Brightpath Software viewed your application.</div>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div data-user="avatar" class="overflow-hidden w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-xs font-semibold">AS</div>
+<div class="hidden lg:block">
+<div data-user="name" class="text-[12.5px] font-medium text-slate-900 leading-tight">Alex V. Santos</div>
+<div class="text-[10.5px] text-slate-500 leading-tight" id="stateLabel">Active Student</div>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-1 px-5 lg:px-8 py-6 pb-10">
+<section class="tab-panel space-y-5" id="tab-resume">
+<div class="flex flex-wrap items-center justify-between gap-3">
+<div>
+<h1 class="text-xl font-bold text-slate-900">Resume Builder</h1>
+<p class="text-sm text-slate-500 mt-0.5">Your profile, skills, and verified accomplishments — all in one place.</p>
+</div>
+<button class="text-[12.5px] font-semibold text-white bg-slate-900 hover:bg-slate-800 px-4 py-2.5 rounded-md transition"><i class="fa-solid fa-file-arrow-down mr-1.5"></i>Export PDF</button>
+</div>
+<div class="flex items-center gap-1.5 bg-white rounded-lg border border-slate-200 p-1 w-fit">
+<button class="resume-subtab-btn active text-[12.5px] font-semibold px-3.5 py-1.5 rounded-md transition" data-resumetab="resume-preview">Preview</button>
+<button class="resume-subtab-btn text-[12.5px] font-semibold px-3.5 py-1.5 rounded-md transition" data-resumetab="resume-edit">Edit Profile &amp; Skills</button>
+</div>
+<!-- ===== PREVIEW ===== -->
+<div class="resume-subtab-panel" id="resume-preview">
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 w-full min-h-[calc(100vh-250px)]">
+<div class="flex items-start gap-4 pb-4 border-b border-slate-100">
+<div class="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center text-slate-400 flex-shrink-0"><i class="fa-solid fa-user text-xl"></i></div>
+<div class="flex-1">
+<div class="flex items-center gap-2">
+<h2 class="text-lg font-bold text-slate-900" id="pv-name">Alex V. Santos</h2>
+</div>
+<div class="text-[12px] text-slate-500 mt-0.5" id="pv-contact">0917 123 4567 · alex.santos@sjc.edu.ph</div>
+<div class="text-[11.5px] text-slate-400 mt-0.5">BS Computer Science · PHINMA St. Jude College</div>
+</div>
+</div>
+<div class="py-3 border-b border-slate-100">
+<div class="flex items-center justify-between mb-1">
+<h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Objective</h3>
+</div>
+<p class="text-[13px] text-slate-600 leading-relaxed" id="pv-objective">Computer Science student seeking an OJT placement to apply and grow my skills in software development and QA.</p>
+</div>
+<div class="py-3 border-b border-slate-100" id="pv-workexp-wrap">
+<div class="flex items-center justify-between mb-1.5">
+<h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Work Experience</h3>
+</div>
+<div class="text-[13px] text-slate-600 space-y-1" id="pv-workexp"></div>
+</div>
+<div class="py-3 border-b border-slate-100">
+<div class="flex items-center justify-between mb-1.5">
+<h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Education</h3>
+</div>
+<p class="text-[13px] text-slate-600" id="pv-education">BS Computer Science, PHINMA St. Jude College — 2023–Present</p>
+</div>
+<div class="py-3 border-b border-slate-100 grid sm:grid-cols-2 gap-4">
+<div>
+<div class="flex items-center justify-between mb-1.5">
+<h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Soft Skills</h3>
+</div>
+<div class="flex flex-wrap gap-1.5" id="pv-softskills"></div>
+</div>
+<div>
+<div class="flex items-center justify-between mb-1.5">
+<h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Hard Skills</h3>
+</div>
+<div class="flex flex-wrap gap-1.5" id="pv-hardskills"></div>
+</div>
+</div>
+<div class="py-3 border-b border-slate-100" id="pv-certs-wrap">
+<div class="flex items-center justify-between mb-1.5">
+<h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Certifications</h3>
+</div>
+<ul class="text-[13px] text-slate-600 space-y-1 list-disc list-inside" id="pv-certs"></ul>
+</div>
+<div class="py-3 border-b border-slate-100" id="pv-projects-wrap">
+<div class="flex items-center justify-between mb-1.5">
+<h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Projects</h3>
+</div>
+<p class="text-[13px] text-slate-600" id="pv-projects"></p>
+</div>
+<div class="py-3 border-b border-slate-100" id="pv-volunteer-wrap">
+<div class="flex items-center justify-between mb-1.5">
+<h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Volunteer Work</h3>
+</div>
+<ul class="text-[13px] text-slate-600 space-y-1 list-disc list-inside" id="pv-volunteer"></ul>
+</div>
+<div class="py-3 border-b border-slate-100" id="pv-awards-wrap">
+<div class="flex items-center justify-between mb-1.5">
+<h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Awards &amp; Honors</h3>
+</div>
+<ul class="text-[13px] text-slate-600 space-y-1 list-disc list-inside" id="pv-awards"></ul>
+</div>
+<div class="space-y-3" id="pv-customsections"></div>
+<div class="pt-3">
+<div class="flex items-center gap-1.5 mb-1.5"><i class="fa-solid fa-lock text-emerald-500 text-[11px]"></i><h3 class="text-[11px] font-semibold text-emerald-600 uppercase tracking-wide">Verified Internship Experience</h3></div>
+<p class="text-[10.5px] text-slate-400 mb-2">Verified from approved OJT accomplishment reports. This section is locked after coordinator verification.</p>
+<div class="space-y-2" id="pv-verified">
+<div class="flex items-start justify-between gap-3 text-[13px] text-slate-600"><p>Assisted in database migration and performed API unit testing under supervisor guidance.</p><button class="request-edit-btn text-[11px] font-medium text-sky-600 hover:text-sky-700 whitespace-nowrap flex-shrink-0">Request Edit</button></div>
+<div class="flex items-start justify-between gap-3 text-[13px] text-slate-600"><p>Refactored authentication module and reviewed teammate's pull requests.</p><button class="request-edit-btn text-[11px] font-medium text-sky-600 hover:text-sky-700 whitespace-nowrap flex-shrink-0">Request Edit</button></div>
+</div>
+</div>
+</div>
+</div>
+<!-- ===== EDIT ===== -->
+<div class="resume-subtab-panel hidden" id="resume-edit">
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-6">
+<div class="flex items-center gap-4">
+<div class="w-16 h-16 rounded-full bg-slate-200 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 flex-shrink-0"><i class="fa-solid fa-user text-xl"></i></div>
+<div>
+<button class="text-[12px] font-semibold text-sky-600 hover:text-sky-700"><i class="fa-solid fa-camera mr-1.5"></i>Upload Photo</button>
+<p class="text-[10.5px] text-slate-400 mt-0.5">Shown on your profile and resume.</p>
+</div>
+</div>
+<div class="border border-dashed border-sky-200 bg-sky-50/50 rounded-lg p-4 flex flex-wrap items-center justify-between gap-3">
+<div>
+<div class="text-[13px] font-semibold text-slate-700"><i class="fa-solid fa-file-arrow-up text-sky-600 mr-1.5"></i>Already have a resume?</div>
+<p class="text-[11.5px] text-slate-500 mt-0.5">Upload it as a PDF — it's attached as-is and isn't text-editable here.</p>
+</div>
+<button class="text-[12px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-3.5 py-2 rounded-md transition flex-shrink-0" id="uploadResumePdfBtn">Upload PDF</button>
+</div>
+<div class="hidden items-center justify-between border border-slate-200 rounded-md px-3 py-2.5" id="uploadedPdfRow">
+<div class="flex items-center gap-2.5 text-[12.5px] text-slate-700"><i class="fa-solid fa-file-pdf text-red-500"></i><span>Alex_Santos_Resume.pdf</span><span class="text-[10.5px] text-slate-400">(not editable)</span></div>
+<button class="text-slate-400 hover:text-red-500"><i class="fa-solid fa-trash text-[12px]"></i></button>
+</div>
+<div class="grid sm:grid-cols-2 gap-3">
+<div>
+<label class="text-[12px] font-medium text-slate-600 block mb-1">Full Name</label>
+<input class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" id="ed-name" type="text" value="Alex V. Santos"/>
+</div>
+<div>
+<label class="text-[12px] font-medium text-slate-600 block mb-1">Phone Number</label>
+<input class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" id="ed-phone" type="text" value="0917 123 4567"/>
+</div>
+</div>
+<div>
+<label class="text-[12px] font-medium text-slate-600 block mb-1">Email Address</label>
+<input class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" id="ed-email" type="text" value="alex.santos@sjc.edu.ph"/>
+</div>
+<div>
+<label class="text-[13px] font-semibold text-slate-700 block mb-1">Resume Objective</label>
+<textarea class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" id="ed-objective" rows="2">Computer Science student seeking an OJT placement to apply and grow my skills in software development and QA.</textarea>
+</div>
+<div>
+<label class="text-[13px] font-semibold text-slate-700 block mb-1">Work Experience <span class="text-slate-400 font-normal">(if any — one per line)</span></label>
+<textarea class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" id="ed-workexp" placeholder="e.g., Part-time Store Assistant, Lune&amp;Lore — 2024–2025" rows="2"></textarea>
+</div>
+<div>
+<label class="text-[13px] font-semibold text-slate-700 block mb-1">Education</label>
+<input class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" id="ed-education" type="text" value="BS Computer Science, PHINMA St. Jude College — 2023–Present"/>
+</div>
+<div>
+<label class="text-[13px] font-semibold text-slate-700 block mb-1">Soft Skills</label>
+<div class="flex flex-wrap gap-1.5 border border-slate-300 rounded-md p-2 focus-within:ring-2 focus-within:ring-sky-400" id="softTagBox">
+<span class="tag-chip soft">Communication <button onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button></span>
+<input class="flex-1 min-w-[220px] text-[12.5px] outline-none px-1 py-1" id="softTagInput" placeholder="Type a skill, press Enter" type="text"/>
+</div>
+<p class="text-[10.5px] text-slate-400 mt-1">Optional, Max 4 tags.</p>
+<div class="flex flex-wrap items-center gap-1.5 mt-2"><span class="text-[10.5px] text-slate-400">Examples:</span><button type="button" class="example-chip" data-example-for="softTagInput">Communication</button><button type="button" class="example-chip" data-example-for="softTagInput">Teamwork</button><button type="button" class="example-chip" data-example-for="softTagInput">Time Management</button><button type="button" class="example-chip" data-example-for="softTagInput">Adaptability</button></div>
+</div>
+<div>
+<label class="text-[13px] font-semibold text-slate-700 block mb-1">Hard Skills</label>
+<div class="flex flex-wrap gap-1.5 border border-slate-300 rounded-md p-2 focus-within:ring-2 focus-within:ring-sky-400" id="techTagBox">
+<span class="tag-chip">Python <button onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button></span>
+<span class="tag-chip">SQL <button onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button></span>
+<span class="tag-chip">Canva <button onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button></span>
+<input class="flex-1 min-w-[220px] text-[12.5px] outline-none px-1 py-1" id="techTagInput" placeholder="Type a skill, press Enter" type="text"/>
+</div>
+<p class="text-[10.5px] text-slate-400 mt-1">Min 1 required, Max 15 tags. Any field counts, not just technical.</p>
+<div class="flex flex-wrap items-center gap-1.5 mt-2"><span class="text-[10.5px] text-slate-400">Examples:</span><button type="button" class="example-chip" data-example-for="techTagInput">Python</button><button type="button" class="example-chip" data-example-for="techTagInput">SQL</button><button type="button" class="example-chip" data-example-for="techTagInput">Canva</button><button type="button" class="example-chip" data-example-for="techTagInput">Customer Service</button><button type="button" class="example-chip" data-example-for="techTagInput">Data Entry</button></div>
+</div>
+<div class="border border-slate-200 rounded-lg p-4">
+<div class="flex items-center justify-between mb-3">
+<label class="text-[13px] font-semibold text-slate-700">Thesis / Major Project</label>
+<label class="flex items-center gap-2 text-[11.5px] text-slate-500 cursor-pointer">
+                  Include in resume
+                  <input checked="" class="w-4 h-4 rounded border-slate-300 text-sky-600 focus:ring-sky-400" id="includeThesisToggle" type="checkbox"/>
+</label>
+</div>
+<div class="space-y-3" id="thesisFields">
+<div>
+<label class="text-[11.5px] font-medium text-slate-500 block mb-1">Project Title <span class="text-slate-400 font-normal">(Max 80 chars)</span></label>
+<input class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" id="ed-thesisTitle" maxlength="80" placeholder="e.g., Community Tourism Mobile App" type="text"/>
+</div>
+<div>
+<label class="text-[11.5px] font-medium text-slate-500 block mb-1">Role/Contribution <span class="text-slate-400 font-normal">(Max 200 chars)</span></label>
+<textarea class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" id="ed-thesisRole" maxlength="200" placeholder="e.g., 'Responsible for developing the ML-based matching engine...'" rows="2"></textarea>
+</div>
+</div>
+<p class="text-[10.5px] text-slate-400 mt-2">Not every course has a thesis — turn this off if it doesn't apply to you.</p>
+</div>
+<div class="border border-slate-200 rounded-lg p-4">
+<div class="flex items-center justify-between mb-3">
+<label class="text-[13px] font-semibold text-slate-700">Certifications / Trainings</label>
+<label class="flex items-center gap-2 text-[11.5px] text-slate-500 cursor-pointer">
+                  Include in resume
+                  <input checked="" class="w-4 h-4 rounded border-slate-300 text-sky-600 focus:ring-sky-400" id="includeCertsToggle" type="checkbox"/>
+</label>
+</div>
+<div class="space-y-2.5" id="certRows">
+<div class="grid sm:grid-cols-[1fr_1fr_100px] gap-2">
+<input class="border border-slate-300 rounded-md px-3 py-2 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-sky-400" maxlength="60" placeholder="Certification Name" type="text" value="Google IT Support Certificate"/>
+<input class="border border-slate-300 rounded-md px-3 py-2 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-sky-400" maxlength="60" placeholder="Issuing Organization" type="text" value="Coursera / Google"/>
+<select class="border border-slate-300 rounded-md px-2 py-2 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-sky-400">
+<option>2026</option><option>2025</option><option>2024</option><option>2023</option>
+</select>
+</div>
+</div>
+<button class="mt-2.5 text-[12px] font-semibold text-sky-600 hover:text-sky-700" id="addCertBtn"><i class="fa-solid fa-plus mr-1"></i>Add Another</button>
+<p class="text-[10.5px] text-slate-400 mt-1">Up to 5 entries. Not every course requires these — turn off if not applicable.</p>
+</div>
+<div>
+<label class="text-[13px] font-semibold text-slate-700 block mb-1">Volunteer Work <span class="text-slate-400 font-normal">(one per line)</span></label>
+<textarea class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" id="ed-volunteer" placeholder="e.g., Outreach Volunteer, ACS Community Drive — 2025" rows="2"></textarea>
+</div>
+<div>
+<label class="text-[13px] font-semibold text-slate-700 block mb-1">Awards &amp; Honors <span class="text-slate-400 font-normal">(one per line)</span></label>
+<textarea class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" id="ed-awards" placeholder="e.g., Dean's Lister, 2nd Semester 2025" rows="2"></textarea>
+</div>
+<!-- Custom sections (always self-declared) -->
+<div>
+<label class="text-[13px] font-semibold text-slate-700 block mb-1">Languages Spoken</label>
+<div class="flex flex-wrap gap-x-5 gap-y-2 text-[13px] text-slate-600">
+<label class="flex items-center gap-1.5"><input checked="" class="w-3.5 h-3.5 rounded border-slate-300 text-sky-600" type="checkbox"/> English</label>
+<label class="flex items-center gap-1.5"><input checked="" class="w-3.5 h-3.5 rounded border-slate-300 text-sky-600" type="checkbox"/> Filipino</label>
+<label class="flex items-center gap-1.5"><input class="w-3.5 h-3.5 rounded border-slate-300 text-sky-600" type="checkbox"/> Bisaya/Cebuano</label>
+<label class="flex items-center gap-1.5"><input class="w-3.5 h-3.5 rounded border-slate-300 text-sky-600" type="checkbox"/> Ilocano</label>
+<label class="flex items-center gap-1.5"><input class="w-3.5 h-3.5 rounded border-slate-300 text-sky-600" type="checkbox"/> Others:</label>
+<input class="border border-slate-300 rounded-md px-2 py-1 text-[12.5px] w-28 focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="specify" type="text"/>
+</div>
+</div>
+<div class="space-y-3" id="customSections"></div>
+<button class="text-[12px] font-semibold text-sky-600 hover:text-sky-700" id="addCustomSectionBtn"><i class="fa-solid fa-plus mr-1"></i>Add Custom Section <span class="text-slate-400 font-normal">(your own title + text, free-form)</span></button>
+<div class="pt-2 border-t border-slate-100">
+<button class="text-[13px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-4 py-2.5 rounded-md transition" id="saveSkillsBtn">Save &amp; Update Preview</button>
+<p class="hidden text-[11.5px] text-emerald-600 mt-2" id="saveSkillsMicrocopy"><i class="fa-solid fa-circle-check mr-1"></i>Saved! This section is always editable — update it anytime as you gain new skills or certifications.</p>
+<p class="text-[11px] text-slate-400 mt-3 bg-slate-50 border border-slate-100 rounded-md p-3">Note: Everything above is self-declared and unverified. It's used for initial job matching. Once you begin your OJT, verified accomplishments from your approved reports are added separately below, under Verified Internship Experience.</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+</div>
+
+
+<!-- MODAL: Request Alumni Status -->
+<div id="alumniRequestModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl w-full max-w-sm p-6 shadow-xl text-center">
+    <div class="w-12 h-12 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center text-lg mx-auto mb-3"><i class="fa-solid fa-graduation-cap"></i></div>
+    <h3 class="font-bold text-slate-900">Request Alumni Status</h3>
+    <p class="text-[12.5px] text-slate-500 mt-1.5 mb-5">This sends a request to your OJT coordinator for approval. Your account stays in Student mode until they approve it.</p>
+    <div class="flex gap-2.5">
+      <button id="cancelAlumniRequestBtn" class="flex-1 text-[12.5px] font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 px-3.5 py-2.5 rounded-md transition">Cancel</button>
+      <button id="sendAlumniRequestBtn" class="flex-1 text-[12.5px] font-semibold text-white bg-slate-900 hover:bg-slate-800 px-3.5 py-2.5 rounded-md transition">Send Request</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer"></div>
+<script src="script.js"></script>
+</body>
+</html>

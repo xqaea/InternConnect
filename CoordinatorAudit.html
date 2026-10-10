@@ -60,6 +60,10 @@
             <span id="waitingBadge" class="sidebar-text bg-sky-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">5</span>
         </button>
 
+        <button data-tab="placements" class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Placements">
+            <i class="fa-solid fa-route w-4 text-center"></i> <span class="sidebar-text">Placements</span>
+        </button>
+
         <button data-tab="classwork" class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" title="Classwork">
             <i class="fa-solid fa-clipboard-list w-4 text-center"></i> <span class="sidebar-text">Classwork and Tasks</span>
         </button>
@@ -192,7 +196,7 @@
                 <th class="px-5 py-2.5 font-semibold">Status</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100 text-[12.5px]">
+            <tbody id="auditTbody" class="divide-y divide-slate-100 text-[12.5px]">
               <tr>
                 <td class="px-5 py-3 text-slate-500 font-mono text-[11.5px]">2026-09-15 17:42:03</td>
                 <td class="px-5 py-3 text-slate-600">coord-jdc-001</td>
