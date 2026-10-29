@@ -65,7 +65,7 @@ window.ICCore.coordinator.initHolidays = initCoordinatorHolidays;
 
 (function () {
   'use strict';
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('ic:coordinator-ready', () => {
     window.ICCore?.coordinator?.initHolidays?.();
   }, { once: true });
 })();

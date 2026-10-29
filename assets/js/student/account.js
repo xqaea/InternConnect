@@ -73,7 +73,14 @@ function initStudentAccount({currentUserRecord, isAlumni, isPending, hasComplete
     document.getElementById('alumniPendingBadge')?.addEventListener('click',()=>toast('Your Alumni status request is waiting for coordinator approval.','info'));
     document.getElementById('cancelAlumniRequestBtn')?.addEventListener('click',closeAlumniModal);
     document.getElementById('sendAlumniRequestBtn')?.addEventListener('click',sendAlumniRequest);
-    document.getElementById('logoutBtn')?.addEventListener('click',async ()=>{if(!await askConfirm('Log out of InternConnect?'))return;localStorage.removeItem('ic_session');sessionStorage.setItem('pendingToast',JSON.stringify({message:'You have been logged out.',type:'info'}));window.location.href=studentPageMap.login;});
+    document.getElementById('logoutBtn')?.addEventListener('click',async ()=>{
+      if(!await askConfirm('Log out of InternConnect?')) return;
+      if(session()?.databaseAccount){ try { await window.ICStudentApi.logout(); } catch(e) {} }
+      sessionStorage.removeItem('ic_student_token');
+      localStorage.removeItem('ic_session');
+      sessionStorage.setItem('pendingToast',JSON.stringify({message:'You have been logged out.',type:'info'}));
+      window.location.href=studentPageMap.login;
+    });
   }
   initStudentAccountControls();
 }

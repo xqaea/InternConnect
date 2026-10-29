@@ -129,7 +129,7 @@ if (!passwordValid) {
 }
     showStep2Error('');
     if(!email) return showStep2Error('Enter your email first.');
-    if(getUsers().some(u => u.role === currentRole() && u.email.toLowerCase() === email.toLowerCase())){
+    if(currentRole() === 'partnercompany' && getUsers().some(u => u.role === currentRole() && u.email.toLowerCase() === email.toLowerCase())){
         return showStep2Error('This email is already registered. Use a different email, or sign in instead.');
     }
     if(!passwordValid || mismatch || !codeValid) return;

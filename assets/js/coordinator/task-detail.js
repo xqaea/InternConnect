@@ -12,7 +12,7 @@ function renderSubmissionDetail(taskId, index){
     document.getElementById('subDetailRaw').textContent = sub.raw;
     document.getElementById('subDetailBullet').textContent = sub.bullet;
     currentSubIndex = index;
-    const g = getGrades()[gradeKey(taskId, sub.name)];
+    const g = getGrades()[gradeKey(taskId, sub.databaseReport?sub.email:sub.name)];
     document.getElementById('gradeInput').value = g ? g.score : '';
     document.getElementById('gradeFeedback').value = g ? g.feedback : '';
     document.getElementById('gradeMax').textContent = taskInfo(taskId).maxPoints;
@@ -95,9 +95,9 @@ function afterReview(){
     document.querySelectorAll('#taskSubmissionsList .log-item').forEach((el, k) => { el.classList.toggle('border-sky-300', k === i); el.classList.toggle('bg-sky-50', k === i); el.classList.toggle('border-slate-200', k !== i); });
     renderSubmissionDetail(currentTaskId, i);
 }
-on('td-approveBtn', 'click', () => {
+on('td-approveBtn', 'click', async () => {
     const sub = taskInfo(currentTaskId).submissions[currentSubIndex];
-    reviewSubmission(currentTaskId, sub, 'Verified', document.getElementById('gradeFeedback').value.trim());
+    if(await reviewSubmission(currentTaskId, sub, 'Verified', document.getElementById('gradeFeedback').value.trim())===false) return;
     afterReview();
     showToast(sub.name + "'s log approved and pushed to verified resume.", 'success');
 });
@@ -105,7 +105,7 @@ on('td-reviseBtn', 'click', async () => {
     const sub = taskInfo(currentTaskId).submissions[currentSubIndex];
     const fb = await askInput('What should ' + sub.name + ' revise? The student will see this.', document.getElementById('gradeFeedback').value.trim());
     if(!fb || !fb.trim()) return;
-    reviewSubmission(currentTaskId, sub, 'Needs Revision', fb.trim());
+    if(await reviewSubmission(currentTaskId, sub, 'Needs Revision', fb.trim())===false) return;
     afterReview();
     showToast('Revision requested — ' + sub.name + ' will be notified.', 'warn');
 });
@@ -113,17 +113,25 @@ on('td-rejectBtn', 'click', async () => {
     const sub = taskInfo(currentTaskId).submissions[currentSubIndex];
     const fb = await askInput('Why is ' + sub.name + "'s log rejected? The student will see this.");
     if(!fb || !fb.trim()) return;
-    reviewSubmission(currentTaskId, sub, 'Rejected', fb.trim());
+    if(await reviewSubmission(currentTaskId, sub, 'Rejected', fb.trim())===false) return;
     afterReview();
     showToast('Log rejected.', 'warn');
 });
-on('td-saveGradeBtn', 'click', () => {
+on('td-saveGradeBtn', 'click', async () => {
     const t = taskInfo(currentTaskId);
     const sub = t.submissions[currentSubIndex];
     const raw = document.getElementById('gradeInput').value;
     const score = Number(raw);
     if(raw === '' || isNaN(score) || score < 0 || score > t.maxPoints){
         return showToast('Enter a grade from 0 to ' + t.maxPoints + '.', 'warn');
+    }
+    if(sub.databaseReport){
+        try{
+            await window.ICCoordinatorApi.reviewReport(currentTaskId,{email:sub.email,version:sub.version,score,feedback:document.getElementById('gradeFeedback').value.trim()});
+            cacheDatabaseReports((await window.ICCoordinatorApi.reports()).reports);
+            afterReview();showToast('Grade saved.', 'success');
+        }catch(error){showToast(error.message || 'Could not save the grade.', 'warn');}
+        return;
     }
     const grades = getGrades();
     grades[gradeKey(currentTaskId, sub.name)] = {score, feedback: document.getElementById('gradeFeedback').value.trim()};
@@ -135,7 +143,7 @@ on('td-saveGradeBtn', 'click', () => {
 
 (function () {
   'use strict';
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('ic:coordinator-ready', () => {
     window.ICCore?.coordinator?.initTaskDetail?.();
   }, { once: true });
 })();

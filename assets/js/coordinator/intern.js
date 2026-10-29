@@ -37,7 +37,7 @@ function attendanceCard(p, deployed){
     const chips = [['', 'All'], ['Late', 'Late'], ['Absent', 'Absent'], ['Flagged', 'Flagged']].map(([f, label]) =>
         '<button data-pf-act="att-filter" data-f="' + f + '" class="text-[11px] font-semibold px-2.5 py-1 rounded-full border transition ' + (attFilter === f ? 'bg-sky-600 text-white border-sky-600' : 'text-slate-600 border-slate-200 hover:bg-slate-50') + '">' + label + '</button>').join('');
     const right = '<div class="flex items-center gap-1.5 flex-wrap">' + chips
-        + '<button data-pf-act="att-export" class="ml-1 text-[11px] font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 px-2.5 py-1 rounded-md"><i class="fa-solid fa-file-csv mr-1"></i>Export CSV</button></div>';
+        + '<button data-pf-act="att-export" class="ml-1 text-[11px] font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 px-2.5 py-1 rounded-md"><i class="fa-solid fa-file-pdf mr-1"></i>Export PDF</button></div>';
 
     const list = recs.filter(r => !attFilter || r.status === attFilter);
     const shown = attShowAll ? list : list.slice(0, 10);
@@ -47,7 +47,7 @@ function attendanceCard(p, deployed){
     const noteHtml = (r) => !r.note ? '' : '<div class="mt-1 text-[10.5px] text-slate-500 max-w-[230px] whitespace-normal leading-snug" title="Intern\'s explanation"><i class="fa-regular fa-comment mr-1 text-sky-500"></i><strong class="text-slate-600">' + esc(r.note.type) + ':</strong> ' + esc(r.note.reason) + '</div>';
     const absentReview = (r) => !r.review ? (r.note ? '<button data-pf-act="att-excuse" data-date="' + r.date + '" class="text-[10.5px] font-semibold text-emerald-700 hover:text-emerald-800">Excuse</button><button data-pf-act="att-keep" data-date="' + r.date + '" class="ml-2 text-[10.5px] font-semibold text-slate-500 hover:text-slate-700">Keep absent</button>' : '')
         : '<span class="text-[10.5px] font-semibold ' + (r.review === 'excused' ? 'text-emerald-700' : 'text-slate-500') + '">' + (r.review === 'excused' ? 'Excused' : 'Kept absent') + '</span><button data-pf-act="att-undo" data-date="' + r.date + '" class="ml-2 text-[10.5px] text-slate-400 hover:text-slate-600">Undo</button>';
-    const review = (r) => r.status === 'Absent' ? absentReview(r) : r.status !== 'Flagged' ? ''
+    const review = (r) => r.status === 'Absent' ? absentReview(r) : !(p.databaseRecord ? ['Flagged','Outside schedule','Late'].includes(r.status) : r.status==='Flagged') ? ''
         : !r.review ? '<button data-pf-act="att-accept" data-date="' + r.date + '" class="text-[10.5px] font-semibold text-emerald-700 hover:text-emerald-800">Accept</button><button data-pf-act="att-reject" data-date="' + r.date + '" class="ml-2 text-[10.5px] font-semibold text-red-600 hover:text-red-700">Reject</button>'
         : '<span class="text-[10.5px] font-semibold ' + (r.review === 'accepted' ? 'text-emerald-700' : 'text-red-600') + '">' + (r.review === 'accepted' ? 'Accepted' : 'Rejected') + '</span><button data-pf-act="att-undo" data-date="' + r.date + '" class="ml-2 text-[10.5px] text-slate-400 hover:text-slate-600">Undo</button>';
     const rows = shown.map(r => {
@@ -100,14 +100,21 @@ function showClockPhoto(p, date, kind){
         + '</div></div>';
     openModal(document.getElementById('attPhotoModal'));
 }
-function exportAttendanceCsv(p){
-    const cell = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-    const lines = [['Date', 'Time in', 'Time out', 'Location', 'Latitude', 'Longitude', 'Distance from site (m)', 'Hours', 'Status', 'Review']]
-        .concat(internAttendance(p).slice().reverse().map(r => [r.date, r.timeIn ? fmtClock(r.timeIn) : '', r.timeOut ? fmtClock(r.timeOut) : '', r.place || '', r.lat || '', r.lng || '', r.dist == null ? '' : r.dist, r.hours, r.status, r.review || '']));
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([lines.map(l => l.map(cell).join(',')).join('\r\n')], {type: 'text/csv'}));
-    a.download = 'Attendance_' + fileSlug(p.name) + '.csv';
-    a.click();
+function exportInternAttendancePdf(p){
+    const Pdf = window.jspdf?.jsPDF;
+    if(!Pdf) return showToast('The PDF library could not load. Please try again.', 'warn');
+    const doc = new Pdf({unit:'pt', format:'a4', orientation:'landscape'});
+    if(typeof doc.autoTable !== 'function') return showToast('The PDF library could not load. Please try again.', 'warn');
+    const rows = internAttendance(p).slice().reverse().map(r => [r.date,
+        r.timeIn ? fmtClock(r.timeIn) : '', r.timeOut ? fmtClock(r.timeOut) : '',
+        r.place || '', r.lat ?? '', r.lng ?? '', r.dist ?? '', r.hours, r.status, r.review || '']);
+    const startY = drawExportHeader(doc, 'Student Attendance', [p.name,
+        'Batch: ' + activeClassCode() + '  |  Generated ' + todayISO()], 40);
+    doc.autoTable({startY, margin:{left:40,right:40,bottom:40}, theme:'striped',
+        head:[['Date','Time in','Time out','Location','Latitude','Longitude','Distance (m)','Hours','Status','Review']],
+        body:rows.length ? rows : [['No attendance records.','','','','','','','','','']],
+        styles:{fontSize:8,cellPadding:4}, headStyles:{fillColor:[15,23,42]}});
+    doc.save('Attendance_' + fileSlug(p.name) + '.pdf');
 }
 
 
@@ -206,7 +213,7 @@ if(!document.getElementById('internProfile')) return;
     if(window.location.hash === '#attendance') document.getElementById('attendance')?.scrollIntoView();
     on('attPhotoClose', 'click', () => closeModal(document.getElementById('attPhotoModal')));
     on('profileBackBtn', 'click', () => { if(history.length > 1) history.back(); else goTo('attendance'); });
-    document.getElementById('internProfile').addEventListener('click', (e) => {
+    document.getElementById('internProfile').addEventListener('click', async (e) => {
         const btn = e.target.closest('[data-pf-act]');
         if(!btn) return;
         const p = placementList().find(x => x.name === profileName);
@@ -223,10 +230,22 @@ if(!document.getElementById('internProfile')) return;
         }
         if(act.startsWith('att-')){
             if(act === 'att-photo'){ showClockPhoto(p, btn.dataset.date, btn.dataset.kind); return; }
-            if(act === 'att-export'){ exportAttendanceCsv(p); return; }
+            if(act === 'att-export'){ exportInternAttendancePdf(p); return; }
             if(act === 'att-filter'){ attFilter = btn.dataset.f; attShowAll = false; }
             if(act === 'att-all') attShowAll = !attShowAll;
             if(['att-accept', 'att-reject', 'att-excuse', 'att-keep', 'att-undo'].includes(act)){
+                if(p.databaseRecord || p.databasePlacement){
+                    const decision={'att-accept':'accepted','att-reject':'rejected','att-undo':''}[act];
+                    if(decision===undefined) return showToast('This action is not available for recorded attendance.', 'warn');
+                    btn.disabled=true;
+                    try{
+                        await window.ICCoordinatorApi.reviewAttendance({email:p.email,date:btn.dataset.date,decision});
+                        cacheDatabaseAttendance((await window.ICCoordinatorApi.attendance()).attendance);
+                        showToast('Attendance review saved.', 'success');
+                        renderProfile(profileName);
+                    }catch(error){showToast(error.message || 'Could not save attendance review.', 'warn');btn.disabled=false;}
+                    return;
+                }
                 const reviews = getJSON(ATT_REVIEW_KEY, {});
                 const key = p.name + '|' + btn.dataset.date, day = formatDate(btn.dataset.date);
                 const RESULT = {
@@ -256,7 +275,7 @@ window.ICCore.coordinator.initInternProfile = initCoordinatorInternProfile;
 
 (function () {
   'use strict';
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('ic:coordinator-ready', () => {
     window.ICCore?.coordinator?.initInternProfile?.();
   }, { once: true });
 })();

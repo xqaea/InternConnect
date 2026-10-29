@@ -8,12 +8,20 @@ function saveDraft(patch){ sessionStorage.setItem('ic_reg', JSON.stringify(Objec
 
 // Save who is logged in (theme included) then open their dashboard
 function startSession(user, message){
+    if(['student', 'coordinator'].includes(user.role) && user.databaseAccount){
+        const users = getUsers();
+        const old = users.find(record => record.role === user.role && record.email.toLowerCase() === user.email.toLowerCase()) || {};
+        if(user.role === 'student' && user.status === 'active' && ['intern', 'alumni', 'alumni_pending'].includes(old.status)) user = {...user, status: old.status};
+        const cached = Object.assign({}, old, user);
+        delete cached.password;
+        saveUsers(users.filter(record => !(record.role === user.role && record.email.toLowerCase() === user.email.toLowerCase())).concat(cached));
+    }
     localStorage.setItem('ic_session', JSON.stringify({
         email: user.email, role: user.role, name: user.name, program: user.program,
         theme: user.theme, school: user.school || '', classCode: user.classCode || '',
         avatar: user.avatar || '', status: user.status || 'active', hours: Number(user.hours || user.ojtHours || 0),
         ojtHours: Number(user.ojtHours || user.hours || 0), completedAt: user.completedAt || '',
-        company: user.company || '', category: user.category || '', studentNumber: user.studentNumber || ''
+        company: user.company || '', category: user.category || '', studentNumber: user.studentNumber || '', sharedPostings: !!user.sharedPostings, databaseAccount: !!user.databaseAccount
     }));
     applyTheme(user.theme);
     const dest = dashboards[user.role];

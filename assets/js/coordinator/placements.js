@@ -10,18 +10,18 @@ const AFTER_STEP = {'Deployed': 'Monitoring attendance', 'Hours complete': 'Read
 const placementOrder = (p) => { const i = PLACEMENT_STEPS.indexOf(p.status); return i < 0 ? 99 : i; };
 
 function scanChip(p, type, label){
-    const ok = hasDoc(p.company, p.name, type);
+    const ok = p.databasePlacement || hasDoc(p.company, p.name, type);
     return '<span class="inline-flex items-center gap-1 text-[10.5px] font-semibold px-2 py-0.5 rounded-full border '
       + (ok ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-slate-400 bg-slate-50 border-slate-200') + '" title="' + (ok ? 'Signed scan is in the vault' : 'No signed scan yet') + '">'
       + '<i class="fa-solid ' + (ok ? 'fa-check' : 'fa-minus') + ' text-[9px]"></i>' + label + '</span>';
 }
 function placementRow(p){
-    const next = NEXT_STEP[p.status];
+    const next = p.databaseRecord ? (p.status==='Accepted'?NEXT_STEP.Accepted:null) : NEXT_STEP[p.status];
     const action = next
         ? '<button data-pl-act="' + next[0] + '" class="text-[11.5px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-2.5 py-1 rounded-md transition whitespace-nowrap">' + next[1] + '</button>'
-          + (['Applied', 'Endorsed', 'Accepted'].includes(p.status) ? '<button data-pl-act="decline" class="ml-2 text-[11px] text-slate-500 hover:text-red-600 whitespace-nowrap">Not accepted</button>' : '')
-        : '<span class="text-[11.5px] text-slate-400">' + (p.status === 'Hours complete' ? (hasDoc(p.company, p.name, 'Supervisor evaluation') ? 'Ready to mark completed in the Roster' : 'Needs supervisor evaluation') : (AFTER_STEP[p.status] || '')) + '</span>';
-    return '<tr data-name="' + esc(p.name) + '">'
+          + (!p.databaseRecord && ['Applied', 'Endorsed', 'Accepted'].includes(p.status) ? '<button data-pl-act="decline" class="ml-2 text-[11px] text-slate-500 hover:text-red-600 whitespace-nowrap">Not accepted</button>' : '')
+        : '<span class="text-[11.5px] text-slate-400">' + (p.databaseRecord && p.status==='Applied' ? 'Awaiting partner decision' : p.databaseRecord && p.status==='Not placed' ? 'Student can apply through Job Matching' : p.status === 'Hours complete' ? (hasDoc(p.company, p.name, 'Supervisor evaluation') ? 'Ready to mark completed in the Roster' : 'Needs supervisor evaluation') : (AFTER_STEP[p.status] || '')) + '</span>';
+    return '<tr data-name="' + esc(p.name) + '" data-email="' + esc(p.email || '') + '">'
       + '<td class="px-5 py-3"><a href="' + profileLink(p.name) + '" class="font-medium text-slate-900 hover:text-sky-700 hover:underline whitespace-nowrap">' + esc(p.name) + '</a>'
       + (p.studentNo ? '<div class="text-[10.5px] text-slate-400">' + esc(p.studentNo) + '</div>' : '') + '</td>'
       + '<td class="px-5 py-3 text-[13px] text-slate-600">' + (p.company ? esc(p.company) : '<span class="text-slate-400">—</span>') + '</td>'
@@ -51,8 +51,8 @@ function renderPlacements(){
 
 // Moves a student one step; endorse and accept need the signed scan in the vault first
 let applyTarget = '';
-async function placementAction(name, act){
-    const p = placementList().find(x => x.name === name);
+async function placementAction(name, act, email){
+    const p = placementList().find(x => email?x.email===email:x.name===name);
     if(!p) return;
     const history = (status, note) => (p.history || []).concat(note ? {status, date: todayISO(), note} : {status, date: todayISO()});
     const needScan = (type) => {
@@ -61,6 +61,28 @@ async function placementAction(name, act){
         return true;
     };
     if(act === 'files'){ openInternFiles(p.company, p.name); return; }
+    if(p.databaseRecord){
+        if(act!=='deploy' || p.status!=='Accepted') return showToast('The partner must accept this application before deployment.', 'info');
+        const scans=internDocs(p.company,p.name);
+        const endorsement=scans.find(file=>file.type==='Endorsement letter' && file.data);
+        const acceptance=scans.find(file=>file.type==='Acceptance letter' && file.data);
+        if(!endorsement || !acceptance){
+            showToast('Upload the signed endorsement and acceptance letters in Files first (PDF under 1.5 MB, or image under 1 MB).', 'warn');
+            openInternFiles(p.company,p.name);
+            return;
+        }
+        openScheduleModal(p,'Confirm deployment of '+name,async schedule=>{
+            try{
+                await window.ICCoordinatorApi.confirmDeployment(p.applicationId,{schedule,
+                    endorsement:{name:endorsement.name,data:endorsement.data},acceptance:{name:acceptance.name,data:acceptance.data}});
+                await window.syncCoordinatorState();
+                renderPlacements();
+                showToast(name+' deployment confirmed and saved.', 'success');
+                return true;
+            }catch(error){ showToast(error.message || 'Could not confirm deployment. Please refresh and try again.', 'warn');return false; }
+        });
+        return;
+    }
     if(act === 'apply'){
         if(!partnerNames().length){ showToast('No partner companies in this batch yet. Approve a partner company request first.', 'warn'); return; }
         applyTarget = name;
@@ -111,7 +133,7 @@ if(!document.getElementById('placementTbody')) return;
     });
     document.getElementById('placementTbody').addEventListener('click', (e) => {
         const btn = e.target.closest('[data-pl-act]');
-        if(btn) placementAction(btn.closest('tr').dataset.name, btn.dataset.plAct);
+        if(btn) placementAction(btn.closest('tr').dataset.name, btn.dataset.plAct,btn.closest('tr').dataset.email);
     });
     const applyModal = document.getElementById('applyModal');
     on('applyCloseBtn', 'click', () => closeModal(applyModal));
@@ -131,7 +153,7 @@ window.ICCore.coordinator.initPlacements = initCoordinatorPlacements;
 
 (function () {
   'use strict';
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('ic:coordinator-ready', () => {
     window.ICCore?.coordinator?.initPlacements?.();
   }, { once: true });
 })();

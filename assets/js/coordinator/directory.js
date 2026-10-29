@@ -83,7 +83,7 @@ renderPartnerGrid();
 
 (function () {
   'use strict';
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('ic:coordinator-ready', () => {
     window.ICCore?.coordinator?.initDirectoryExport?.();
   }, { once: true });
 })();

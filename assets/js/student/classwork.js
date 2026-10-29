@@ -7,7 +7,7 @@ function initStudentClasswork(studentPageMap){
 
 (function () {
   'use strict';
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('ic:student-ready', () => {
     if (document.body.dataset.page === 'classwork' && window.ICCore?.student?.initClasswork) window.ICCore.student.initClasswork();
   }, { once: true });
 })();

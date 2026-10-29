@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-portal="coordinator">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../assets/css/styles.css">
+    <script src="../../assets/js/theme.js"></script>
     <title>InternConnect - Attendance & Progress</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../../assets/css/styles.css">
-    <script src="../../assets/js/theme.js"></script>
 </head>
 
 <!-- Color Scheme -->
@@ -26,15 +26,15 @@
 
         <!-- Brand Row -->
         <div class="brand-row flex items-center gap-2.5 px-5 py-5 border-b border-white/10">
-            <div class="w-9 h-9 rounded-lg flex items-center justify-center text-white flex-shrink-0">
+            <a href="overview.html" class="w-9 h-9 rounded-lg flex items-center justify-center text-white flex-shrink-0" aria-label="InternConnect overview">
                 <i class="fa-solid fa-link text-sm"></i>
-            </div>
+            </a>
             <div class="sidebar-text min-w-0">
-                <div class="text-white font-bold text-[15px] leading-tight">InternConnect</div>
+                <a href="overview.html" class="block text-white font-bold text-[15px] leading-tight" aria-label="InternConnect overview">InternConnect</a>
                 <div class="text-[10.5px] text-slate-400 tracking-wide">AI-Powered Internship Monitoring Platform</div>
             </div>
-            <button id="collapseBtn" class="hidden lg:flex ml-auto w-6 h-6 rounded-md items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition flex-shrink-0">
-                <i class="fa-solid fa-angles-left text-[11px] transition-transform"></i>
+            <button id="collapseBtn" class="hidden lg:flex ml-auto w-8 h-8 rounded-md items-center justify-center text-slate-300 hover:bg-white/10 hover:text-white transition flex-shrink-0">
+                <i class="fa-solid fa-angles-left transition-transform"></i>
             </button>
             <button id="mobileCloseBtn" class="lg:hidden ml-auto w-8 h-8 rounded-md flex items-center justify-center text-slate-300 hover:bg-white/10 hover:text-white transition flex-shrink-0">
                 <i class="fa-solid fa-xmark"></i>
@@ -121,7 +121,7 @@
                 <div class="relative">
                     <button id="notifBtn" class="relative w-9 h-9 rounded-md flex items-center justify-center text-slate-500 hover:bg-slate-100 transition">
                         <i class="fa-regular fa-bell"></i>
-                        <span class="notification-dot absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+                        <span class="notification-dot hidden absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
                     </button>
                     <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-lg z-30 overflow-hidden">
                         <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
@@ -183,13 +183,7 @@
               <i class="fa-solid fa-calendar-xmark"></i> Holidays &amp; no-work days <span id="holidaysCount" class="text-[11px] font-medium text-slate-400"></span>
             </button>
             <div class="relative">
-              <button id="exportAttBtn" type="button" aria-haspopup="true" aria-expanded="false" class="text-[12.5px] font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-md transition flex items-center gap-1.5">
-                <i class="fa-solid fa-file-export"></i> Export <i class="fa-solid fa-chevron-down text-[9px] text-slate-400"></i>
-              </button>
-              <div id="exportAttMenu" role="menu" class="hidden absolute right-0 mt-1.5 w-56 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-30">
-                <button type="button" role="menuitem" data-export="xlsx" class="w-full text-left px-3.5 py-2 text-[12.5px] text-slate-700 hover:bg-slate-50 flex items-center gap-2.5"><i class="fa-solid fa-file-excel text-emerald-600 w-4 text-center"></i><span>Excel workbook <span class="text-slate-400">(.xlsx)</span></span></button>
-                <button type="button" role="menuitem" data-export="pdf" class="w-full text-left px-3.5 py-2 text-[12.5px] text-slate-700 hover:bg-slate-50 flex items-center gap-2.5"><i class="fa-solid fa-file-pdf text-red-500 w-4 text-center"></i><span>PDF report <span class="text-slate-400">(.pdf)</span></span></button>
-              </div>
+              <button id="exportAttBtn" type="button" class="text-[12.5px] font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-md transition flex items-center gap-1.5"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
             </div>
           </div>
         </div>
@@ -248,8 +242,7 @@
 <!-- Toast Container -->
 <div id="toastContainer"></div>
 
-<!-- SheetJS + jsPDF/AutoTable: build the Excel and PDF of Export (this page only) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- jsPDF/AutoTable: build the PDF export (this page only) -->
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.31/dist/jspdf.plugin.autotable.min.js"></script>
 <script src="../../assets/js/core/dialogs.js"></script>
@@ -268,6 +261,8 @@
 <script src="../../assets/js/script.js"></script><script src="../../assets/js/core/date.js"></script>
 <script src="../../assets/js/core/jobs.js"></script>
     <script src="../../assets/js/export-logo-transparent.js"></script><script src="../../assets/js/export-logo-layout.js"></script><script src="../../assets/js/core/export-layout.js"></script>
+<script src="../../assets/js/core/postings-api.js"></script>
+<script src="../../assets/js/coordinator/database.js"></script>
 <script src="../../assets/js/coordinator/common.js"></script>
 <script src="../../assets/js/core/text.js"></script>
 <script src="../../assets/js/coordinator/attendance-export.js"></script>

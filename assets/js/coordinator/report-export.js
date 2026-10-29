@@ -1,7 +1,7 @@
 // One accomplishment report as PDF or Word. The Word file is a .doc (HTML that Word, LibreOffice and Google Docs open).
 function currentReport(){
     const t = taskInfo(currentTaskId), sub = t.submissions[currentSubIndex];
-    return {t, sub, grade: getGrades()[gradeKey(currentTaskId, sub.name)]};
+    return {t, sub, grade: getGrades()[gradeKey(currentTaskId, sub.databaseReport?sub.email:sub.name)]};
 }
 const reportName = (r, ext) => 'Accomplishment_Report_' + fileSlug(r.sub.name) + '_' + fileSlug(r.t.title) + '.' + ext;
 on('td-genPdfBtn', 'click', () => {

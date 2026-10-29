@@ -7,22 +7,11 @@ function auditExportData(){
         .concat(statuses.map(s => ['Status: ' + s, list.filter(a => a.status === s).length]));
     return {head, rows, details};
 }
-const auditFile = (ext) => 'Audit_Log_' + fileSlug(activeClassCode() || 'batch') + '_' + todayISO() + '.' + ext;
-function exportAuditXlsx(){
-    if(typeof XLSX === 'undefined'){ showToast('The Excel library could not load (are you offline?). Use the PDF option instead.', 'warn'); return false; }
-    const d = auditExportData(), wb = XLSX.utils.book_new();
-    const sheet = XLSX.utils.aoa_to_sheet([d.head].concat(d.rows.length ? d.rows : [['No activity logged yet.']]));
-    sheet['!cols'] = [20, 20, 70, 16, 13].map(w => ({wch: w}));
-    const summary = XLSX.utils.aoa_to_sheet(d.details); summary['!cols'] = [{wch: 24}, {wch: 40}];
-    XLSX.utils.book_append_sheet(wb, sheet, 'Audit Log');
-    XLSX.utils.book_append_sheet(wb, summary, 'Summary');
-    XLSX.writeFile(wb, auditFile('xlsx'));
-    return true;
-}
+const auditFile = () => 'Audit_Log_' + fileSlug(activeClassCode() || 'batch') + '_' + todayISO() + '.pdf';
 function exportAuditPdf(){
     const lib = window.jspdf && window.jspdf.jsPDF;
     const doc = lib && new lib({unit: 'pt', format: 'a4', orientation: 'landscape'});
-    if(!doc || typeof doc.autoTable !== 'function'){ showToast('The PDF library could not load (are you offline?). Use the Excel option instead.', 'warn'); return false; }
+    if(!doc || typeof doc.autoTable !== 'function'){ showToast('The PDF library could not load (are you offline?). Please try again later.', 'warn'); return false; }
     const d = auditExportData(), det = Object.fromEntries(d.details);
     const safe = (t) => String(t == null ? '' : t).replace(/[\u2013\u2014]/g, '-').replace(/\u2192/g, '->').replace(/[^\x20-\x7E\u00A0-\u00FF]/g, '?');   // PDF standard fonts only draw Latin-1
     const css = getComputedStyle(document.documentElement);
@@ -42,9 +31,8 @@ function exportAuditPdf(){
     const pages = doc.getNumberOfPages();
     for(let i = 1; i <= pages; i++){ doc.setPage(i); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(120, 130, 145);
         doc.text('InternConnect  |  Audit trail & security log  |  ' + det['Generated on'], M, H - 22); doc.text('Page ' + i + ' of ' + pages, W - M, H - 22, {align: 'right'}); }
-    doc.save(auditFile('pdf'));
+    doc.save(auditFile());
     return true;
 }
-window.ICCore.audit.exportXlsx = exportAuditXlsx;
 window.ICCore.audit.exportPdf = exportAuditPdf;
 window.ICCore.audit.exportData = auditExportData;

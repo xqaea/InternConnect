@@ -125,6 +125,12 @@ function initCoordinatorRoster(){
         const ready = rosterMembers.filter(m => m.status === 'intern' && m.hours >= REQUIRED_HOURS && hasDoc(m.company, m.name, 'Supervisor evaluation'));
         const ongoing = rosterMembers.filter(m => m.status === 'intern').length - ready.length;
         if(!await askConfirm('Close this batch? ' + ready.length + ' intern(s) with complete hours and a supervisor evaluation will become alumni. ' + ongoing + ' will stay until they finish. No new students can join.')) return;
+        if((getJSON('ic_session', {}) || {}).databaseAccount){
+            try{
+                await window.ICCoordinatorApi.updateBatch(activeClassCode(), {status: 'closed'});
+                await window.syncCoordinatorState();
+            }catch(error){ return showToast(error.message || 'Could not close this batch. Refresh and try again.', 'warn'); }
+        }
         ready.forEach(m => setMember(m, {status: 'alumni', completedAt: todayISO(), employment: 'seeking'}));
         updateClass(activeClassCode(), {status: 'closed'});
         renderRoster();
@@ -137,7 +143,7 @@ window.ICCore.coordinator.initRoster = initCoordinatorRoster;
 
 (function () {
   'use strict';
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('ic:coordinator-ready', () => {
     window.ICCore?.coordinator?.initRoster?.();
     window.ICCore?.coordinator?.initDeletions?.();
   }, { once: true });

@@ -1,4 +1,4 @@
-/* ---------- Export Directory (Excel or PDF) ---------- */
+/* ---------- Export Directory (PDF) ---------- */
 function directoryExportData(){
     const placed = placementList();
     const head = ['Company', 'Industry', 'HR / supervisor contact', 'MOA valid until', 'MOA status', 'Days left', 'MOA scan in vault', 'Interns deployed', 'In process', 'Partner account'];
@@ -17,22 +17,11 @@ function directoryExportData(){
         ['Without MOA scan in vault', rows.filter(r => r[6] === 'No').length], ['Interns deployed', rows.reduce((n, r) => n + r[7], 0)], ['Interns in process', rows.reduce((n, r) => n + r[8], 0)]];
     return {head, rows, details};
 }
-const directoryFile = (ext) => 'Partner_MOA_Directory_' + fileSlug(activeClassCode() || 'batch') + '_' + todayISO() + '.' + ext;
-function exportDirectoryXlsx(){
-    if(typeof XLSX === 'undefined'){ showToast('The Excel library could not load (are you offline?). Use the PDF option instead.', 'warn'); return false; }
-    const d = directoryExportData(), wb = XLSX.utils.book_new();
-    const sheet = XLSX.utils.aoa_to_sheet([d.head].concat(d.rows.length ? d.rows : [['No partner companies in this batch yet.']]));
-    sheet['!cols'] = [30, 26, 30, 15, 15, 10, 17, 16, 11, 38].map(w => ({wch: w}));
-    const summary = XLSX.utils.aoa_to_sheet(d.details); summary['!cols'] = [{wch: 30}, {wch: 40}];
-    XLSX.utils.book_append_sheet(wb, sheet, 'Directory');
-    XLSX.utils.book_append_sheet(wb, summary, 'Summary');
-    XLSX.writeFile(wb, directoryFile('xlsx'));
-    return true;
-}
+const directoryFile = () => 'Partner_MOA_Directory_' + fileSlug(activeClassCode() || 'batch') + '_' + todayISO() + '.pdf';
 function exportDirectoryPdf(){
     const lib = window.jspdf && window.jspdf.jsPDF;
     const doc = lib && new lib({unit: 'pt', format: 'a4', orientation: 'landscape'});
-    if(!doc || typeof doc.autoTable !== 'function'){ showToast('The PDF library could not load (are you offline?). Use the Excel option instead.', 'warn'); return false; }
+    if(!doc || typeof doc.autoTable !== 'function'){ showToast('The PDF library could not load (are you offline?). Please try again later.', 'warn'); return false; }
     const d = directoryExportData(), det = Object.fromEntries(d.details);
     const css = getComputedStyle(document.documentElement);
     const rgb = (n, fb) => { const h = css.getPropertyValue(n).trim().replace('#', ''); return /^[0-9a-f]{6}$/i.test(h) ? [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16)) : fb; };
@@ -51,22 +40,15 @@ function exportDirectoryPdf(){
     const pages = doc.getNumberOfPages();
     for(let i = 1; i <= pages; i++){ doc.setPage(i); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(120, 130, 145);
         doc.text('InternConnect  |  Partner & MOA directory  |  ' + det['Generated on'], M, H - 22); doc.text('Page ' + i + ' of ' + pages, W - M, H - 22, {align: 'right'}); }
-    doc.save(directoryFile('pdf'));
+    doc.save(directoryFile());
     return true;
 }
 function initCoordinatorDirectoryExport(){
     if(!document.getElementById('exportDirBtn')) return;
-    const btn = document.getElementById('exportDirBtn'), menu = document.getElementById('exportDirMenu');
-    const setMenu = (open) => { menu.classList.toggle('hidden', !open); btn.setAttribute('aria-expanded', open ? 'true' : 'false'); };
-    btn.addEventListener('click', (e) => { e.stopPropagation(); setMenu(menu.classList.contains('hidden')); });
-    document.addEventListener('click', (e) => { if(!menu.contains(e.target)) setMenu(false); });
-    document.addEventListener('keydown', (e) => { if(e.key === 'Escape') setMenu(false); });
-    menu.addEventListener('click', (e) => {
-        const item = e.target.closest('[data-export]');
-        if(!item) return;
-        setMenu(false);
-        const label = item.dataset.export === 'xlsx' ? 'Excel' : 'PDF';
-        try { if(!(item.dataset.export === 'xlsx' ? exportDirectoryXlsx() : exportDirectoryPdf())) return; }
+    const btn = document.getElementById('exportDirBtn');
+    btn.addEventListener('click', () => {
+        const label = 'PDF';
+        try { if(!exportDirectoryPdf()) return; }
         catch(err){ console.error(err); showToast('Could not create the file. Please try again.', 'warn'); return; }
         logAudit('Exported the partner and MOA directory (' + label + ')');
         showToast('Partner & MOA directory downloaded as ' + label + '.', 'success');

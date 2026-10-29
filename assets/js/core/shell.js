@@ -13,6 +13,7 @@ if(sidebar){
     const me = getJSON('ic_session', null);
     if(!me || me.role !== (isStudentPortal ? 'student' : (document.body.dataset.role || 'coordinator'))){
         if(REQUIRE_LOGIN) goTo('login', 'Please sign in first.', 'warn');
+        return;
     } else if(me.role === 'coordinator' || me.role === 'partnercompany'){
         const parts = (me.name || '').trim().split(/\s+/);
         const initials = ((parts[0] || '')[0] || '') + (parts.length > 1 ? parts[parts.length - 1][0] : '');
@@ -23,8 +24,7 @@ if(sidebar){
             classcode: activeClassCode() || me.classCode
         };
         Object.keys(values).forEach(key => {
-            if(!values[key]) return;   // keep the sample text when there is nothing saved
-            document.querySelectorAll('[data-user="' + key + '"]').forEach(el => el.textContent = values[key]);
+            document.querySelectorAll('[data-user="' + key + '"]').forEach(el => el.textContent = values[key] || '');
         });
         document.querySelectorAll('[data-user="avatar"]').forEach(el => {
             if(me.avatar){
@@ -39,4 +39,29 @@ if(sidebar){
             }
         });
     }
+    if(me.role === 'student'){
+        ['name','program','school'].forEach(key=>{
+            document.querySelectorAll('[data-user="'+key+'"]').forEach(el=>el.textContent=me[key] || '');
+        });
+        const initials=(me.name || '').trim().split(/\s+/).map(part=>part[0] || '').slice(0,2).join('').toUpperCase();
+        document.querySelectorAll('[data-user="avatar"]').forEach(el=>{
+            el.textContent=initials;
+            if(me.avatar){const img=document.createElement('img');img.src=me.avatar;img.alt='';img.className='w-full h-full object-cover';el.replaceChildren(img);}
+        });
+    }
+    const collapsed=localStorage.getItem('sidebarCollapsed') === 'true';
+    sidebar.classList.toggle('collapsed',collapsed);
+    mainFooter?.classList.toggle('collapsed',collapsed);
+    // Show neutral placeholders while page-specific account/data initialization runs.
+    const main = document.querySelector('main');
+    if(main && !main.querySelector('.portal-loading-placeholder')){
+        const placeholder = document.createElement('div');
+        placeholder.className = 'portal-loading-placeholder';
+        placeholder.setAttribute('role', 'status');
+        placeholder.setAttribute('aria-label', 'Loading page');
+        placeholder.innerHTML = '<div class="portal-loading-title"></div><div class="portal-loading-subtitle"></div><div class="portal-loading-cards"><span></span><span></span><span></span></div><div class="portal-loading-panel"><span></span><span></span><span></span><span></span></div>';
+        placeholder.querySelectorAll('div, span').forEach(el => el.setAttribute('aria-hidden', 'true'));
+        main.prepend(placeholder);
+    }
+    document.documentElement.classList.add('shell-ready');
 }}

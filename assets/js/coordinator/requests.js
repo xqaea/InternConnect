@@ -23,7 +23,7 @@ function renderJoinRequests(){
     const done = getJSON(SAMPLE_JOINS_KEY, []);
     const real = getUsers().filter(u => u.classCode === code && u.status === 'pending')
         .sort((a, b) => (b.requestedAt || '').localeCompare(a.requestedAt || ''));
-    const samples = code === SEED_CODE ? SAMPLE_JOINS.filter(x => !done.includes(x.sample)) : [];
+    const samples = !(getJSON('ic_session', {}) || {}).databaseAccount && code === SEED_CODE ? SAMPLE_JOINS.filter(x => !done.includes(x.sample)) : [];
     const fill = (id, role, empty) => {
         const items = real.filter(u => u.role === role).concat(samples.filter(x => x.role === role));
         document.getElementById(id).innerHTML = items.length ? items.map(pendingCard).join('') : '<p class="text-[12.5px] text-slate-400">' + empty + '</p>';
@@ -50,18 +50,34 @@ document.addEventListener('click', async (e) => {
     const email = card.dataset.email, role = card.dataset.userrole, sampleId = card.dataset.sample;
     const isPartner = role === 'partnercompany';
     if(reject && !await askConfirm('Reject ' + name + '? Their sign up will be removed and they will need to register again.', {title: 'Reject request?', ok: 'Reject', danger: true})) return;
-    if(email){
-        if(approve){
-            const patch = {status: role === 'student' ? 'intern' : 'active', approvedAt: todayISO()};
-            if(isPartner){
-                const u = getUsers().find(x => x.email === email && x.role === role) || {}, typed = (u.company || '').trim();
-                patch.company = partnerCompanies().find(n => n.toLowerCase() === typed.toLowerCase()) || typed;
-            }
-            updateUser(email, role, patch);
+    if(['student', 'partnercompany'].includes(role) && (getJSON('ic_session', {}) || {}).databaseAccount){
+        if(card.dataset.busy) return;
+        card.dataset.busy = 'true';
+        card.querySelectorAll('button').forEach(button => { button.disabled = true; });
+        try{
+            const decide = isPartner ? window.ICCoordinatorApi.decidePartner : window.ICCoordinatorApi.decide;
+            await decide(activeClassCode(), email, approve ? 'approve' : 'reject');
+            await window.syncCoordinatorState();
+        }catch(error){
+            showToast(error.message || 'Could not update this request. Refresh and try again.', 'warn');
+            delete card.dataset.busy;
+            card.querySelectorAll('button').forEach(button => { button.disabled = false; });
+            return;
         }
-        else saveUsers(getUsers().filter(u => !(u.email === email && u.role === role)));
-    } else if(sampleId){
-        localStorage.setItem(SAMPLE_JOINS_KEY, JSON.stringify(getJSON(SAMPLE_JOINS_KEY, []).concat(sampleId)));
+    }else{
+        if(email){
+            if(approve){
+                const patch = {status: role === 'student' ? 'intern' : 'active', approvedAt: todayISO()};
+                if(isPartner){
+                    const u = getUsers().find(x => x.email === email && x.role === role) || {}, typed = (u.company || '').trim();
+                    patch.company = partnerCompanies().find(n => n.toLowerCase() === typed.toLowerCase()) || typed;
+                }
+                updateUser(email, role, patch);
+            }
+            else saveUsers(getUsers().filter(u => !(u.email === email && u.role === role)));
+        } else if(sampleId){
+            localStorage.setItem(SAMPLE_JOINS_KEY, JSON.stringify(getJSON(SAMPLE_JOINS_KEY, []).concat(sampleId)));
+        }
     }
     logAudit((approve ? 'Approved ' : 'Rejected ') + name + (isPartner ? "'s partner link request" : "'s request to join") + ' (' + activeClassCode() + ')', approve ? 'Success' : 'Deleted');
     renderJoinRequests();
@@ -161,7 +177,7 @@ window.ICCore.coordinator.initAlumniRequests = initCoordinatorAlumniRequests;
 
 (function () {
   'use strict';
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('ic:coordinator-ready', () => {
     window.ICCore?.coordinator?.initRequests?.();
     window.ICCore?.coordinator?.initAlumniRequests?.();
     window.ICCore?.coordinator?.initJoinRequests?.();

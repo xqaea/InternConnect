@@ -1,6 +1,6 @@
-// Shared live feedback for student, coordinator and partner registration.
+// Shared password visibility control and registration feedback.
 (function initPasswordVisibility(){
-    ['regPassword', 'regPasswordConfirm'].forEach(id => {
+    ['loginPassword', 'regPassword', 'regPasswordConfirm'].forEach(id => {
         const input = document.getElementById(id);
         if(!input || input.parentElement.classList.contains('password-input-wrap')) return;
         const wrap = document.createElement('div');

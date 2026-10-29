@@ -38,7 +38,7 @@ function initStudentTaskRecords(me, mine, myTasks, mySub){
         const ta = document.getElementById('reportTextarea'), btn = document.getElementById('submitReportBtn');
         const renderMySub = () => {
             document.getElementById('mySubStatus')?.remove();
-            const sub = mySub(t.id), g = getGrades()[gradeKey(t.id, me.name)];
+            const sub = mySub(t.id), g = getGrades()[gradeKey(t.id, me.databaseAccount?me.email:me.name)];
             if(!ta.dataset.loaded){ ta.value = sub.raw || ''; ta.dataset.loaded = '1'; ta.dispatchEvent(new Event('input')); }
             const locked = t.status === 'closed' || ['Pending Review', 'Verified', 'Rejected'].includes(sub.status);
             ta.readOnly = locked; btn.disabled = locked; btn.classList.toggle('opacity-50', locked); btn.classList.toggle('cursor-not-allowed', locked);
@@ -50,10 +50,20 @@ function initStudentTaskRecords(me, mine, myTasks, mySub){
                 + (sub.status === 'Verified' ? '<div class="mt-1">Added to your Verified Resume: “' + esc(sub.bullet) + '”</div>' : '') + '</div>');
         };
         renderMySub();
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
             if(btn.disabled) return;
             const raw = ta.value.trim();
             if(!raw) return showToast('Write your report first.', 'warn');
+            if(t.databaseTask){
+                btn.disabled=true;
+                try{
+                    await window.ICStudentApi.submitReport(t.id,raw);
+                    cacheDatabaseReports((await window.ICStudentApi.reports()).reports);
+                    showToast('Report saved and submitted for coordinator review.', 'success');
+                }catch(error){showToast(error.message || 'Could not submit the report.', 'warn');}
+                finally{renderMySub();}
+                return;
+            }
             const all = getJSON(SUB_KEY, {}), first = !mySub(t.id).status, p = mine();
             all[t.id] = (all[t.id] || []).filter(x => x.name !== me.name).concat({name: me.name, raw, bullet: draftBullet(raw), company: p.company, date: todayISO(), status: 'Pending Review'});
             localStorage.setItem(SUB_KEY, JSON.stringify(all));

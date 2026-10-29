@@ -1,9 +1,42 @@
 /* Font */
+/* Keep dashboard navigation painted while its account and page data initialize. */
+html[data-portal]{background:#f1f5f9;--portal-sidebar-width:0px;}
+html[data-portal] body{background:#f1f5f9;}
+html[data-portal].shell-ready:not(.app-ready)::after{content:"";position:fixed;top:0;left:var(--portal-sidebar-width);right:0;height:2px;z-index:101;background:var(--b500);animation:portal-loading 1s ease-in-out infinite;pointer-events:none;}
+@media (min-width:1024px){
+  html[data-portal]{--portal-sidebar-width:256px;}
+  html[data-portal][data-sidebar-collapsed="true"]{--portal-sidebar-width:76px;}
+}
+@keyframes portal-loading{50%{opacity:.35;}}
+@view-transition{navigation:auto;}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.14s;}
+@media (prefers-reduced-motion:reduce){
+  html[data-portal]:not(.app-ready)::after{animation:none;}
+  ::view-transition-old(root),::view-transition-new(root){animation:none;}
+}
 body{font-family:'Inter',system-ui,sans-serif;}
 body:has(#sidebar) > div{visibility:hidden;}
-html.app-ready body:has(#sidebar) > div{visibility:visible;}
+html.shell-ready body:has(#sidebar) > div,html.app-ready body:has(#sidebar) > div{visibility:visible;}
+html:not(.app-ready) #sidebar,html:not(.app-ready) #mainFooter{transition:none;}
+html:not(.app-ready) .notification-dot,html:not(.app-ready) #pNotifDot,html:not(.app-ready) #waitingBadge,html:not(.app-ready) #notifDropdown{visibility:hidden;}
 body:has(#sidebar) main{visibility:hidden;}
 html.app-ready body:has(#sidebar) main{visibility:visible;}
+/* Content placeholders never reveal the static demo values during hydration. */
+html[data-portal] main{position:relative;}
+.portal-loading-placeholder{display:none;}
+html.shell-ready:not(.app-ready) .portal-loading-placeholder{display:block;visibility:visible;position:absolute;inset:24px 20px auto;pointer-events:none;}
+.portal-loading-title,.portal-loading-subtitle,.portal-loading-panel span{background:#e2e8f0;border-radius:6px;}
+.portal-loading-title{width:clamp(140px,30%,240px);height:24px;}
+.portal-loading-subtitle{width:55%;max-width:360px;height:12px;margin-top:12px;}
+.portal-loading-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:28px;}
+.portal-loading-cards span,.portal-loading-panel{background:#fff;border:1px solid #e2e8f0;border-radius:12px;}
+.portal-loading-cards span{height:100px;background:linear-gradient(#e2e8f0,#e2e8f0) 18px 22px / 45% 10px no-repeat,linear-gradient(#edf2f7,#edf2f7) 18px 47px / 30% 22px no-repeat,#fff;}
+.portal-loading-panel{padding:24px;margin-top:20px;}
+.portal-loading-panel span{display:block;height:12px;margin-bottom:22px;width:85%;}
+.portal-loading-panel span:first-child{width:35%;height:16px;margin-bottom:30px;}
+.portal-loading-panel span:last-child{width:60%;margin-bottom:0;}
+@media(min-width:1024px){html.shell-ready:not(.app-ready) .portal-loading-placeholder{left:32px;right:32px;}}
+@media(max-width:639px){.portal-loading-cards{gap:10px;}.portal-loading-cards span{height:80px;background-position:12px 18px,12px 40px;}.portal-loading-panel{padding:20px;}}
 
 /* Nav Links */
 .nav-link.active{background:linear-gradient(90deg,var(--navA),rgba(255,255,255,0.02));border-left:3px solid var(--b500);color:#fff;}
@@ -32,6 +65,17 @@ body[data-page="jobs"] #sidebar .nav-link[data-tab="jobs"] i{color:var(--b400);}
 .log-item.selected{background:var(--b50);border-color:var(--b600);}
 
 /* Role Switcher (Login and Register) */
+#loginForm{position:relative;}
+#loginForm.login-loading #loginContent{visibility:hidden;}
+.login-skeleton{position:absolute;inset:0;pointer-events:none;}
+.login-skeleton[hidden]{display:none;}
+.login-skeleton > div{background:#e2e8f0;border-radius:6px;}
+.login-skeleton-title{height:24px;width:100px;}
+.login-skeleton-caption{height:12px;width:75%;margin:10px 0 22px;}
+.login-skeleton-pills{height:36px;margin-bottom:22px;}
+.login-skeleton-label{height:10px;width:85px;margin:14px 0 8px;}
+.login-skeleton-field{height:42px;margin-bottom:12px;background:#edf2f7!important;border:1px solid #e2e8f0;}
+.login-skeleton-button{background:#cbd5e1!important;}
 .role-btn{color:#475569;}
 .role-btn.active{background:#fff;color:#0F172A;box-shadow:0 1px 3px rgba(0,0,0,0.12);}
 
@@ -48,6 +92,31 @@ body[data-page="jobs"] #sidebar .nav-link[data-tab="jobs"] i{color:var(--b400);}
 .resume-subtab-btn.active:hover{background:var(--bd);}
 
 /* Sidebar Collapse */
+/* Harvard-style personal resume: one column and plain, high-contrast text. */
+.resume-document{font-family:Georgia,'Times New Roman',serif;color:#000;width:100%;max-width:210mm;aspect-ratio:210 / 297;margin-inline:auto;padding:clamp(18px,5vw,14mm);box-sizing:border-box;}
+.resume-document .resume-heading{text-align:left;border:0;display:flex;align-items:center;gap:16px;}
+.resume-document .resume-heading > :not(#pv-photo){flex:1;min-width:0;}
+.resume-document #pv-photo{order:1;flex-shrink:0;margin:0 0 0 auto;width:1.6in;height:auto;aspect-ratio:1;max-width:40%;border-radius:50%;}
+.resume-document #pv-name{font-size:clamp(24px,4vw,32px);line-height:1.15;color:#000;width:100%;overflow-wrap:anywhere;}
+.resume-document #pv-contact{font-size:clamp(12px,2vw,14px);line-height:1.5;color:#000;overflow-wrap:anywhere;margin-top:8px;}
+.resume-document h3{color:#000;font-size:14pt;font-weight:700;letter-spacing:0;border-bottom:1px solid #000;padding-bottom:3px;width:100%;}
+.resume-document p,.resume-document ul,.resume-document [id^="pv-"]{color:#000;}
+.resume-document > .border-b{border-bottom:0;}
+.resume-document > .py-3,.resume-document #pv-customsections > div{padding-top:7px;padding-bottom:7px;}
+.resume-document .resume-heading{padding-bottom:10px;}
+.resume-document > .grid{gap:10px;}
+.resume-document #pv-customsections:empty{display:none;}
+.resume-document #pv-education{white-space:pre-line;}
+.resume-document ul{display:block;list-style:disc outside;padding-left:18px;margin:0;}
+.resume-document li{padding-left:2px;margin-top:3px;overflow-wrap:anywhere;}
+.resume-document p,.resume-document ul,.resume-document li{font-size:11pt;line-height:1.4;}
+.resume-document #pv-softskills,.resume-document #pv-hardskills{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));gap:8px 16px;padding-left:0;list-style:none;}
+.resume-document .resume-skill-column{margin:0;padding:0;list-style:none;min-width:0;}
+.resume-date-range{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+.resume-date-range > div{min-width:0;}
+.resume-date-range .resume-month-input{min-width:0;min-height:44px;max-width:100%;border-radius:10px;background:#f8fafc;cursor:pointer;transition:border-color .15s,background-color .15s;}
+.resume-month-input:hover{border-color:#94a3b8;background:#fff;}
+.resume-month-input::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.75;padding:4px;}
 #sidebar{transition:width .2s ease, transform .2s ease;}
 @media (min-width:1024px){
 #sidebar.collapsed{width:76px;}
@@ -58,6 +127,7 @@ body[data-page="jobs"] #sidebar .nav-link[data-tab="jobs"] i{color:var(--b400);}
 #sidebar.collapsed #collapseBtn{margin-left:0;}
 #sidebar.collapsed #collapseBtn i{transform:rotate(180deg);}
 #sidebar.collapsed .group-label{display:none;}
+body[data-role="student"] #sidebar.collapsed .student-sidebar-profile{justify-content:center;padding-left:0;padding-right:0;}
 }
 
 /* Footer */

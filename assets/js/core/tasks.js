@@ -3,6 +3,16 @@
 // Tasks are saved per batch (prototype storage: ic_tasks)
 // [{id, classCode, title, instructions, dueDate, dueTime, maxPoints, repeat, template (file students fill in), attachments (supporting files), status: open|closed|archived, turnedIn, total, approvedLogs}]
 const TASK_KEY = 'ic_tasks';
+let databaseTaskRecords=[];
+function cacheDatabaseTasks(tasks){databaseTaskRecords=tasks;}
+let databaseReportRecords=[];
+function cacheDatabaseReports(reports){databaseReportRecords=reports;}
+function savedTaskSubmissions(){
+    if(!(getJSON('ic_session',{}) || {}).databaseAccount) return getJSON(SUB_KEY,{});
+    const out={};
+    databaseReportRecords.forEach(report=>{(out[report.taskId] ||= []).push(report);});
+    return out;
+}
 const TASK_SEED = [
     {id: 'week5', classCode: SEED_CODE, title: 'Week 5 Accomplishment Report', instructions: 'Submit your weekly summary covering Sept 15–19. Include hours rendered and key tasks completed.',
      dueDate: '2026-09-19', dueTime: '23:59', maxPoints: 100, repeat: 'Friday', template: 'Week5_Report_Template.docx', attachments: [], status: 'open', turnedIn: 62, total: 85, approvedLogs: 1},
@@ -11,6 +21,7 @@ const TASK_SEED = [
 ];
 const getAllTasks = () => {
     const students = {};   // students of each batch, counted once per call
+    if((getJSON('ic_session',{}) || {}).databaseAccount) return databaseTaskRecords.map(task=>liveTaskCounts({...task},students));
     return (getJSON(TASK_KEY, null) || TASK_SEED.map(t => Object.assign({}, t)))
         .map(t => Object.assign({attachments: []}, t, {template: t.template !== undefined ? t.template : t.attachment}))
         .map(t => liveTaskCounts(t, students));
@@ -18,6 +29,10 @@ const getAllTasks = () => {
 // The two sample tasks keep their sample numbers. Every other task counts the real submissions
 // against the students who are in its batch right now (so students who join later are counted too).
 function liveTaskCounts(t, students){
+    if(t.databaseTask){
+        const reports=databaseReportRecords.filter(report=>report.taskId===t.id);
+        return {...t,turnedIn:reports.length,total:Math.max(classCounts(t.classCode).interns,reports.length),approvedLogs:reports.filter(r=>r.status==='Verified').length};
+    }
     if(TASK_SEED.some(x => x.id === t.id)) return t;
     if(!(t.classCode in students)) students[t.classCode] = classCounts(t.classCode).interns;
     const turnedIn = new Set((getJSON(SUB_KEY, {})[t.id] || []).map(x => x.name)).size;
@@ -77,6 +92,7 @@ const SUB_STATUS_KEY = 'ic_sub_status';   // coordinator decisions: {'taskId|nam
 const SUB_CLASS = {'Pending Review': 'text-amber-600 bg-amber-50 border-amber-200', 'Verified': 'text-emerald-700 bg-emerald-50 border-emerald-200',
     'Needs Revision': 'text-orange-700 bg-orange-50 border-orange-200', 'Rejected': 'text-red-600 bg-red-50 border-red-200'};
 function taskSubmissions(id){
+    if((getJSON('ic_session',{}) || {}).databaseAccount) return databaseReportRecords.filter(report=>report.taskId===id).map(report=>({...report,statusClass:SUB_CLASS[report.status]}));
     const saved = getJSON(SUB_KEY, {})[id] || [], st = getJSON(SUB_STATUS_KEY, {});
     const seed = ((taskData[id] || {}).submissions || []).filter(x => !saved.some(y => y.name === x.name));
     const due = ((getJSON(TASK_KEY, null) || TASK_SEED).find(x => x.id === id) || {}).dueDate;
@@ -86,13 +102,20 @@ function taskSubmissions(id){
         return Object.assign({}, x, {status, feedback: r ? r.feedback : x.feedback, statusClass: SUB_CLASS[status] || x.statusClass});
     });
 }
-const allTaskIds = () => [...new Set(Object.keys(taskData).concat(getAllTasks().map(t => t.id)))];
+const allTaskIds = () => [...new Set(((getJSON('ic_session',{}) || {}).databaseAccount?databaseReportRecords.map(r=>r.taskId):Object.keys(taskData)).concat(getAllTasks().map(t => t.id)))];
 // Prototype stand-in for the AI resume bullet: first line of the report, cleaned up
 function draftBullet(raw){
     const line = (raw.split('\n').map(l => l.replace(/^[\s\-•*]+/, '').trim()).find(Boolean) || '').replace(/[.\s]+$/, '');
     return line ? line.charAt(0).toUpperCase() + line.slice(1, 160) + '.' : '';
 }
-function reviewSubmission(id, sub, status, feedback){
+async function reviewSubmission(id, sub, status, feedback){
+    if(sub.databaseReport){
+        try{
+            await window.ICCoordinatorApi.reviewReport(id,{email:sub.email,version:sub.version,status,feedback:feedback || ''});
+            cacheDatabaseReports((await window.ICCoordinatorApi.reports()).reports);
+            return true;
+        }catch(error){showToast(error.message || 'Could not save the review.', 'warn');return false;}
+    }
     const st = getJSON(SUB_STATUS_KEY, {});
     st[id + '|' + sub.name] = {status, feedback: feedback || '', at: todayISO()};
     localStorage.setItem(SUB_STATUS_KEY, JSON.stringify(st));
@@ -101,7 +124,7 @@ function reviewSubmission(id, sub, status, feedback){
 
 // Saved task details (edited in Classwork) on top of the sample submissions
 function taskInfo(id){
-    const base = Object.assign({maxPoints: 100}, taskData[id] || {}, {submissions: taskSubmissions(id)});
+    const base = Object.assign({maxPoints: 100}, (getJSON('ic_session',{}) || {}).databaseAccount?{title:databaseReportRecords.find(r=>r.taskId===id)?.taskTitle || ''}:taskData[id] || {}, {submissions: taskSubmissions(id)});
     const t = findTask(id);
     if(!t) return base;
     return Object.assign({}, base, {title: t.title, instructions: t.instructions, due: dueLabel(t), attachment: t.attachment,
@@ -110,9 +133,11 @@ function taskInfo(id){
 
 // Grades are saved per task and per student: { 'week5|Aiyu T.': { score, feedback } }
 const gradeKey = (taskId, name) => taskId + '|' + name;
-const getGrades = () => getJSON('ic_grades', {});
+const getGrades = () => (getJSON('ic_session',{}) || {}).databaseAccount
+    ? Object.fromEntries(databaseReportRecords.filter(report=>report.score!=null).map(report=>[gradeKey(report.taskId,report.email),{score:report.score,feedback:report.gradeFeedback}]))
+    : getJSON('ic_grades', {});
 function gradeText(taskId, name){
     const g = getGrades()[gradeKey(taskId, name)];
     return g ? ' · Graded ' + g.score + '/' + taskInfo(taskId).maxPoints : '';
 }
-const subLine = (taskId, sub) => sub.status + (sub.late ? ' · Late' : '') + gradeText(taskId, sub.name);
+const subLine = (taskId, sub) => sub.status + (sub.late ? ' · Late' : '') + gradeText(taskId, sub.databaseReport?sub.email:sub.name);

@@ -25,6 +25,12 @@ const PLACEMENT_SEED = {
 };
 const SAMPLE_STUDENT_NO = {'Aiyu T.': '2023-0141', 'Kaye P.': '2023-0056', 'Leo A.': '2023-0088', 'Jomari D.': '2023-0172'};
 const getPlacementStore = () => getJSON(PLACEMENT_KEY, {});
+let databasePlacementRecords=[];
+function cacheDatabasePlacements(records){ databasePlacementRecords=records; }
+function databasePlacementProgress(record){
+    const hours=databaseAttendanceRecords.filter(row=>row.email===record.email).reduce((total,row)=>total+Number(row.hours || 0),0);
+    return {...record,databaseRecord:true,hours,status:hours>=REQUIRED_HOURS?'Hours complete':'Deployed'};
+}
 function savePlacement(name, patch){
     const all = getPlacementStore();
     all[name] = Object.assign({}, PLACEMENT_SEED[name] || {}, all[name] || {}, patch);
@@ -50,6 +56,20 @@ function rosterHistory(m){
 // Every student with their placement status
 function placementList(code){
     code = code || currentBatchCode();
+    const me=getJSON('ic_session',{}) || {};
+    if(me.databaseAccount){
+        if(me.role==='partnercompany') return databasePlacementRecords.filter(p=>p.classCode===code).map(databasePlacementProgress);
+        const users=getUsers().filter(u=>u.role==='student' && u.databaseAccount && u.classCode===code && u.status!=='pending' && (me.role!=='student' || u.email===me.email));
+        const apps=getJSON('ic_job_apps',{});
+        return users.map(user=>{
+            const official=databasePlacementRecords.find(p=>p.email.toLowerCase()===user.email.toLowerCase());
+            if(official) return databasePlacementProgress(official);
+            const application=(apps[user.email.toLowerCase()] || []).slice().reverse().find(a=>a.databaseApplication && a.internship && ['Pending','Accepted'].includes(a.status));
+            return {name:user.name,email:user.email,studentNo:user.studentNumber,classCode:code,real:true,databaseRecord:true,hours:0,
+                status:application ? application.status==='Accepted'?'Accepted':'Applied' : 'Not placed',
+                company:application?.company || '',position:application?.title || '',applicationId:application?.id,source:application?'student':'',history:[]};
+        });
+    }
     const store = getPlacementStore();
     const out = {};
     if(code === SEED_CODE) Object.keys(PLACEMENT_SEED).forEach(n => { out[n] = Object.assign({name: n}, PLACEMENT_SEED[n], store[n] || {}); });

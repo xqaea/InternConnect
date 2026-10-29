@@ -114,6 +114,20 @@ on('postTaskBtn', 'click', async () => {
         if(tpl.length){ fields.template = tpl[0].name; fields.templateData = await fileData(tpl[0]); }
         if(att.length){ fields.attachments = [...att].map(file => file.name); fields.attachmentData = await Promise.all([...att].map(fileData)); }
     } catch(e){ showToast('Could not read the selected task files. Please try again.', 'warn'); return; }
+    if((getJSON('ic_session',{}) || {}).databaseAccount){
+        const button=document.getElementById('postTaskBtn');
+        if(button.disabled) return;
+        button.disabled=true;
+        try{
+            const old=editingTaskId?findTask(editingTaskId):{};
+            await window.ICCoordinatorApi.saveTask({...old,...fields,classCode:activeClassCode()},editingTaskId);
+            cacheDatabaseTasks((await window.ICCoordinatorApi.tasks()).tasks);
+            taskModal.classList.add('hidden');taskFilter='active';renderTasks();
+            showToast('Task saved to your batch.', 'success');
+        }catch(error){showToast(error.message || 'Could not save the task.', 'warn');}
+        finally{button.disabled=false;}
+        return;
+    }
     if(editingTaskId){
         updateTask(editingTaskId, fields);
         showToast('"' + esc(title) + '" updated.', 'success');
@@ -135,6 +149,18 @@ async function taskAction(id, act){
     if(!t) return;
     const name = '"' + esc(t.title) + '"';
     if(act === 'edit'){ openTaskModal(t); return; }
+    if(t.databaseTask){
+        const status={close:'closed',reopen:'open',archive:'archived',restore:'closed'}[act];
+        if(!status && !['delete','duplicate'].includes(act)) return;
+        if(['close','archive','delete'].includes(act) && !await askConfirm((act==='delete'?'Delete':act==='archive'?'Archive':'Close submissions for')+' "'+t.title+'"?')) return;
+        try{
+            if(act==='delete') await window.ICCoordinatorApi.deleteTask(id);
+            else await window.ICCoordinatorApi.saveTask({...t,title:act==='duplicate'?t.title+' (copy)':t.title,status:act==='duplicate'?'open':status},act==='duplicate'?null:id);
+            cacheDatabaseTasks((await window.ICCoordinatorApi.tasks()).tasks);
+            renderTasks();showToast('Task updated.', 'success');
+        }catch(error){showToast(error.message || 'Could not update the task.', 'warn');}
+        return;
+    }
     if(act === 'duplicate'){
         const list = getAllTasks();
         list.splice(list.findIndex(x => x.id === id), 0, Object.assign({}, t, {id: 't' + Date.now().toString(36), title: t.title + ' (copy)', status: 'open', turnedIn: 0, approvedLogs: 0}));
@@ -221,7 +247,7 @@ window.ICCore.coordinator.initBatchSelector = initCoordinatorBatchSelector;
 
 (function () {
   'use strict';
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('ic:coordinator-ready', () => {
     window.ICCore?.coordinator?.initTaskList?.();
     window.ICCore?.coordinator?.initBatchSelector?.();
   }, { once: true });

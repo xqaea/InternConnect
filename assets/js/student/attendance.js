@@ -94,9 +94,25 @@ function createStudentAttendanceControls({currentUserRecord, isAlumni, session, 
     document.getElementById('confirmAttendancePhotoBtn')?.classList.remove('flex');
   }
 
-  function confirmTimeIn(){
+  async function confirmTimeIn(){
     if(!attendancePhoto) return toast('Capture an attendance photo first.', 'warn');
     if(!attendancePosition) return toast('Your location could not be verified. Allow location access and try again.', 'warn');
+    if(session()?.databaseAccount){
+      const button=document.getElementById('confirmAttendancePhotoBtn');
+      if(button?.disabled) return;
+      if(button) button.disabled=true;
+      try{
+        await window.ICStudentApi.clock({action:attendanceAction,photo:attendancePhoto,
+          lat:attendancePosition.latitude,lng:attendancePosition.longitude,accuracy:attendancePosition.accuracy});
+        cacheDatabaseAttendance((await window.ICStudentApi.attendance()).attendance);
+        stopAttendanceCamera();hide('attendanceCameraModal');
+        window.renderStudentAttendance?.();
+        window.renderTodayClock?.();
+        toast(attendanceAction==='out'?'Time Out saved.':'Time In saved.', 'success');
+      }catch(error){ toast(error.message || 'Could not save attendance. Please refresh before retrying.', 'warn'); }
+      finally{if(button)button.disabled=false;}
+      return;
+    }
     if(attendanceAction === 'out'){
       const me = session() || {};
       const today = liveRecs(me.name)[todayISO()] || {};

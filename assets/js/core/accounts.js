@@ -24,7 +24,9 @@ function myClasses(){
     const me = getJSON('ic_session', null) || {};
     const all = getClasses();
     return Object.keys(all)
-        .filter(code => all[code].coordinator === me.email || (code === SEED_CODE && me.classCode === SEED_CODE))
+        .filter(code => me.databaseAccount && me.role === 'coordinator'
+            ? all[code].databaseBatch && all[code].coordinator === me.email
+            : all[code].coordinator === me.email || (code === SEED_CODE && me.classCode === SEED_CODE))
         .map(code => Object.assign({term: 'Initial batch', status: 'active', createdAt: '2026-01-01'}, all[code], {code}))
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }

@@ -7,13 +7,13 @@ function applicantsOf(job){
         const who = {email: a.email || u.email || key, name: a.name || u.name || key, program: a.program || u.program || 'BS Computer Science'};
         const status = jobAppStatus(a, who);
         if(['Cancelled', 'Withdrawn', 'Not placed'].includes(status)) return;
-        out.push({key, who, app: a, status, match: jobMatch(job, Object.assign({}, who, {email: key}))});
+        out.push({key, who, app: a, status, match: jobMatch(job, Object.assign({}, who, {email: key, applicationResume:a.databaseApplication ? a.resume : null}))});
     }));
     return out.sort((x, y) => y.match.score - x.match.score);
 }
 // Resume shown to the partner: self-declared (Resume Builder); jobs also get the system-generated Verified entries
 function resumeHtml(key, name, withVerified){
-    const r = getJSON('ic_resume', {})[key] || {}, f = r.fields || {};
+    const r = submittedResume(key) || {}, f = r.fields || {};
     const sec = (t, body) => body ? '<div class="py-2.5"><div class="text-[10.5px] font-semibold uppercase tracking-wide text-slate-400 mb-1">' + t + '</div>' + body + '</div>' : '';
     const text = (v) => v ? '<p class="text-[12.5px] text-slate-700 whitespace-pre-line">' + esc(v) + '</p>' : '';
     const chips = (l) => (l || []).length ? '<div class="flex flex-wrap gap-1.5">' + l.map(x => '<span class="tag-chip">' + esc(x) + '</span>').join('') + '</div>' : '';
@@ -27,7 +27,7 @@ function resumeHtml(key, name, withVerified){
       + sec('Volunteer work', text(f['ed-volunteer'])) + sec('Awards', text(f['ed-awards']))
       + (r.pdfData ? sec('Uploaded resume', '<button type="button" data-resume-download="' + esc(key) + '" class="text-[12.5px] font-medium text-sky-600 hover:underline">Download ' + esc(r.pdf) + '</button>') : '')
       + (r.custom || []).map(c => sec(esc(c.title || 'Other'), text(c.text))).join('') + '</div>';
-    if(withVerified){
+    if(withVerified && !key.startsWith('application-')){
         const ver = allTaskIds().flatMap(id => taskSubmissions(id).filter(x => x.name === name && x.status === 'Verified' && x.bullet).map(x => [taskInfo(id).title, x.bullet]));
         html += '<div class="mt-3 border-t border-slate-200 pt-3"><div class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 inline-block px-2 py-0.5 rounded-full mb-2"><i class="fa-solid fa-circle-check mr-1"></i>System-generated · verified by the OJT coordinator</div>'
           + (ver.length ? ver.map(([t, b]) => '<div class="flex justify-between gap-3 text-[12.5px] text-slate-700 py-1"><p>' + esc(b) + '</p><span class="text-[10.5px] text-slate-400 whitespace-nowrap">' + esc(t) + '</span></div>').join('') : '<p class="text-[12px] text-slate-400">No verified OJT entries.</p>') + '</div>';
@@ -36,7 +36,7 @@ function resumeHtml(key, name, withVerified){
 }
 
 
-if(document.body.dataset.ppage) (function(){
+if(document.body.dataset.ppage) (async function(){
     const me = getJSON('ic_session', {}) || {};
     if(me.role !== 'partnercompany') return;
     const company = me.company || '', page = document.body.dataset.ppage.replace(/^p/, ''), params = new URLSearchParams(window.location.search);
@@ -47,6 +47,7 @@ if(document.body.dataset.ppage) (function(){
         button.addEventListener('click', async () => {
             if(button.dataset.tab === 'logout'){
                 if(!await askConfirm('Log out of InternConnect?')) return;
+                if(me.sharedPostings) await window.ICPostingApi.logout().catch(() => {});
                 localStorage.removeItem('ic_session');
                 goTo('login', 'You have been logged out.', 'info');
                 return;
@@ -87,6 +88,15 @@ if(document.body.dataset.ppage) (function(){
         if(partnerNotifDropdown && !partnerNotifDropdown.contains(event.target)) partnerNotifDropdown.classList.add('hidden');
     });
 
+    if(me.sharedPostings){
+        try {
+            setSharedPostings(await window.ICPostingApi.mine());
+            cacheDatabaseApplications((await window.ICPostingApi.applications()).applications);
+            cacheDatabasePlacements((await window.ICPostingApi.placements()).placements);
+            cacheDatabaseAttendance((await window.ICPostingApi.attendance()).attendance);
+        }
+        catch(error){ setSharedPostings([]); showToast(error.message || 'Shared postings could not be loaded.', 'warn'); }
+    }
     const placed = () => placementList().filter(p => p.company === company);
     const myPosts = () => Object.values(allPostings()).filter(j => j.company === company);
     const card = 'bg-white rounded-xl border border-slate-200 shadow-sm';
@@ -105,7 +115,7 @@ if(document.body.dataset.ppage) (function(){
     });
     document.addEventListener('click', (e) => {
         const button = e.target.closest('[data-resume-download]'); if(!button) return;
-        const r = getJSON('ic_resume', {})[button.dataset.resumeDownload];
+        const r = submittedResume(button.dataset.resumeDownload);
         if(!r?.pdfData) return;
         const a = document.createElement('a'); a.href = r.pdfData; a.download = r.pdf || 'Resume.pdf'; a.click();
     });
@@ -168,8 +178,8 @@ if(document.body.dataset.ppage) (function(){
                       + '<td class="py-2.5 pr-3"><div class="font-medium text-slate-900">' + esc(a.who.name) + '</div><div class="text-[10.5px] text-slate-400">' + esc(a.who.program) + ' · applied ' + formatDate(a.app.date) + '</div></td>'
                       + '<td class="py-2.5 pr-3 w-36"><div class="font-bold text-indigo-700">' + a.match.score + '%</div><div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-indigo-500" style="width:' + a.match.score + '%"></div></div></td>'
                       + '<td class="py-2.5 pr-3"><div class="flex flex-wrap gap-1">' + a.match.skills.map(([n, ok]) => ok ? '<span class="tag-chip matched"><i class="fa-solid fa-check"></i>' + esc(n) + '</span>' : '<span class="tag-chip gap">' + esc(n) + ' <span class="chip-note">gap</span></span>').join('') + (a.match.courseOk ? '' : '<span class="text-[10.5px] text-amber-600">different course</span>') + '</div></td>'
-                      + '<td class="py-2.5 pr-3">' + (internship ? placementBadge(a.status) : jobStatusSelect(a.key, j.id, a.status)) + '</td>'
-                      + '<td class="py-2.5 text-right"><button data-resume="' + esc(a.key) + '" data-name="' + esc(a.who.name) + '" data-verified="' + (internship ? '0' : '1') + '" class="' + btn + 'text-sky-600 bg-sky-50 hover:bg-sky-100 whitespace-nowrap">View resume</button></td></tr>').join('') + '</tbody></table></div>'
+                      + '<td class="py-2.5 pr-3">' + (internship && (!a.app.databaseApplication || a.status==='Deployed') ? placementBadge(a.status) : jobStatusSelect(a.key, j.id, a.status)) + '</td>'
+                      + '<td class="py-2.5 text-right"><button data-resume="' + esc(a.app.databaseApplication ? 'application-' + a.app.id : a.key) + '" data-name="' + esc(a.who.name) + '" data-verified="' + (internship ? '0' : '1') + '" class="' + btn + 'text-sky-600 bg-sky-50 hover:bg-sky-100 whitespace-nowrap">View resume</button></td></tr>').join('') + '</tbody></table></div>'
                     : '<div class="text-[12.5px] text-slate-400 border border-dashed border-slate-200 rounded-md py-6 text-center">No applicants yet. Students see this posting in their Job Matching.</div>') + '</div>'; };
             document.getElementById('pPostings').innerHTML = '<div class="flex flex-wrap items-start justify-between gap-3"><div><h1 class="text-xl font-bold text-slate-900">Job Postings</h1><p class="text-sm text-slate-500 mt-0.5">Internships and jobs from ' + esc(company) + '. Students see open postings in Job Matching.</p></div>'
               + '<button data-post="new" class="text-[12.5px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-3.5 py-2 rounded-md"><i class="fa-solid fa-plus mr-1.5"></i>New posting</button></div>'
@@ -184,8 +194,20 @@ if(document.body.dataset.ppage) (function(){
                 : '<div class="' + card + ' p-8 text-center text-[12.5px] text-slate-400">No postings yet. Post an internship or a job to start receiving applicants.</div>');
             if(sel && params.get('job')) document.querySelector('.ring-2')?.scrollIntoView({block: 'start'});
         };
-        document.addEventListener('change', (e) => {
+        document.addEventListener('change', async (e) => {
             const s = e.target.closest('select[data-jobstatus]'); if(!s) return;
+            if(me.sharedPostings){
+                const app = (getJSON(JOB_APPS_KEY, {})[s.dataset.jobstatus] || []).find(a => a.job === s.dataset.job && a.databaseApplication);
+                if(!app) return;
+                s.disabled = true;
+                try{
+                    await window.ICPostingApi.decideApplication(app.id, s.value);
+                    cacheDatabaseApplications((await window.ICPostingApi.applications()).applications);
+                    showToast('Application status saved.', 'success');
+                }catch(error){ showToast(error.message || 'Could not save application status.', 'warn'); }
+                render();
+                return;
+            }
             setJobAppStatus(s.dataset.jobstatus, s.dataset.job, s.value, company);
             showToast('Application status set to ' + s.value + '.', 'success');
             render();
@@ -197,13 +219,39 @@ if(document.body.dataset.ppage) (function(){
             const lab = (t, input) => '<label class="block mb-3"><span class="text-[12.5px] font-medium text-slate-600 block mb-1">' + t + '</span>' + input + '</label>';
             showModal(id ? 'Edit posting' : 'New posting', lab('Title', '<input id="psTitle" class="' + field + '" value="' + esc(j.title || '') + '">')
               + '<div class="grid grid-cols-3 gap-2">' + lab('Type', '<select id="psKind" class="' + field + '">' + opt(['Internship', 'Full-time', 'Part-time'], kind) + '</select>') + lab('Setup', '<select id="psArr" class="' + field + '">' + opt(['Onsite', 'Hybrid', 'Remote'], arr) + '</select>') + lab('Course', '<select id="psCourse" class="' + field + '">' + opt([...new Set(Object.values(PROGRAM_COURSE))], j.course) + '</select>') + '</div>'
-              + lab('Location', '<input id="psLoc" class="' + field + '" placeholder="ex. Imus, Cavite" value="' + esc(j.location || '') + '">') + lab('Pay / allowance', '<input id="psPay" class="' + field + '" value="' + esc(j.salary || '') + '">')
+              + lab('Location', '<div class="flex items-center gap-2"><input id="psLoc" class="' + field + ' min-w-0 flex-1" placeholder="ex. Imus, Cavite" value="' + esc(j.location || '') + '"><button type="button" id="psUseGps" class="text-[11.5px] font-semibold text-sky-700 border border-sky-200 hover:bg-sky-50 px-2.5 py-2 rounded-md whitespace-nowrap"><i class="fa-solid fa-location-crosshairs mr-1"></i>Use GPS</button></div><input id="psLat" type="hidden" value="' + esc(j.coordinates?.lat ?? '') + '"><input id="psLng" type="hidden" value="' + esc(j.coordinates?.lng ?? '') + '"><span id="psGpsStatus" class="block text-[10.5px] text-slate-400 mt-1">' + (j.coordinates ? 'GPS location saved. Capture again while at the internship site to update it.' : 'Use while at the internship location. Your location is saved with this posting.') + '</span>') + lab('Pay / allowance', '<input id="psPay" class="' + field + '" value="' + esc(j.salary || '') + '">')
               + lab('Description', '<textarea id="psDesc" rows="3" class="' + field + '">' + esc(j.description || '') + '</textarea>') + lab('Requirements (one per line)', '<textarea id="psReq" rows="3" class="' + field + '">' + esc((j.requirements || []).join('\n')) + '</textarea>')
               + lab('Skills to match (comma separated)', '<input id="psSkills" class="' + field + '" placeholder="ex. SQL, Python, Communication" value="' + esc((j.skills || []).map(x => x[0]).join(', ')) + '">')
               + lab('Application deadline', '<input id="psDeadline" type="date" class="' + field + '" value="' + esc(j.deadlineISO || '') + '">')
               + '<div class="flex justify-end gap-2.5 mt-2"><button data-pclose class="text-[12.5px] font-medium text-slate-500 px-3.5 py-2">Cancel</button><button data-post="save" data-id="' + esc(id || '') + '" class="text-[12.5px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-4 py-2 rounded-md">' + (id ? 'Save' : 'Post') + '</button></div>');
         };
         document.addEventListener('click', async (e) => {
+            const gpsButton = e.target.closest('#psUseGps');
+            if(gpsButton){
+                if(!navigator.geolocation) return showToast('Location access is not available in this browser.', 'warn');
+                gpsButton.disabled = true;
+                gpsButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>Getting GPS';
+                navigator.geolocation.getCurrentPosition(position => {
+                    if(!gpsButton.isConnected) return;
+                    const latInput = document.getElementById('psLat'), lngInput = document.getElementById('psLng');
+                    if(!latInput || !lngInput) return;
+                    const lat = position.coords.latitude, lng = position.coords.longitude;
+                    latInput.value = lat.toFixed(6);
+                    lngInput.value = lng.toFixed(6);
+                    const status = document.getElementById('psGpsStatus');
+                    if(status) status.textContent = 'GPS captured: ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
+                    gpsButton.disabled = false;
+                    gpsButton.innerHTML = '<i class="fa-solid fa-location-crosshairs mr-1"></i>Use GPS';
+                    showToast('Posting location captured. Add the place name above before saving.', 'success');
+                }, error => {
+                    if(!gpsButton.isConnected) return;
+                    const message = error.code === 1 ? 'Allow location access to capture the posting site.' : 'Could not get the location. Try again while at the internship site.';
+                    gpsButton.disabled = false;
+                    gpsButton.innerHTML = '<i class="fa-solid fa-location-crosshairs mr-1"></i>Use GPS';
+                    showToast(message, 'warn');
+                }, {enableHighAccuracy: false, maximumAge: 0, timeout: 15000});
+                return;
+            }
             const b = e.target.closest('[data-post]'); if(!b) return;
             const id = b.dataset.id, act = b.dataset.post;
             if(act === 'new' || act === 'edit') return openForm(act === 'edit' ? id : '');
@@ -212,23 +260,48 @@ if(document.body.dataset.ppage) (function(){
             if(act === 'toggle'){
                 if(cur.status !== 'closed' && !await askConfirm('Close "' + cur.title + '"? Students will no longer see it.')) return;
                 all[id] = Object.assign(all[id] || {}, {status: cur.status === 'closed' ? 'open' : 'closed'});
+                if(me.sharedPostings){
+                    b.disabled = true;
+                    try { await window.ICPostingApi.save({...cur, status: all[id].status}, id); setSharedPostings(Object.values(allPostings()).map(post => post.id === id ? {...cur, status: all[id].status} : post)); }
+                    catch(error){ return showToast(error.message || 'Could not update posting.', 'warn'); }
+                    finally { b.disabled = false; }
+                }
                 logAudit((cur.status === 'closed' ? 'Reopened' : 'Closed') + ' the posting ' + cur.title + ' (' + company + ')');
                 showToast(cur.status === 'closed' ? 'Posting reopened. Students can apply again.' : 'Posting closed. Students no longer see it.', 'info');
             }
             if(act === 'save'){
                 const v = (x) => document.getElementById(x).value.trim(), skills = v('psSkills').split(',').map(x => x.trim()).filter(Boolean);
                 if(!v('psTitle') || !v('psLoc') || !skills.length) return showToast('Add the title, location and at least one skill.', 'warn');
-                const key = id || 'post-' + vaultId();
-                all[key] = Object.assign(all[key] || {}, {company, title: v('psTitle'), type: v('psKind') + ' · ' + v('psArr'), course: v('psCourse'), location: v('psLoc'), salary: v('psPay'), description: v('psDesc'),
-                    requirements: v('psReq').split('\n').map(x => x.trim()).filter(Boolean), skills: skills.map(x => [x]), deadlineISO: v('psDeadline'),
+                const lat = Number(v('psLat')), lng = Number(v('psLng'));
+                const coordinates = v('psLat') !== '' && v('psLng') !== '' && Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? {lat, lng, source: 'browser-gps'} : null;
+                let key = id || 'post-' + vaultId();
+                all[key] = Object.assign({}, cur, all[key] || {}, {company, title: v('psTitle'), type: v('psKind') + ' · ' + v('psArr'), course: v('psCourse'), location: v('psLoc'), salary: v('psPay'), description: v('psDesc'),
+                    coordinates, requirements: v('psReq').split('\n').map(x => x.trim()).filter(Boolean), skills: skills.map(x => [x]), deadlineISO: v('psDeadline'),
                     deadline: v('psDeadline') ? 'Application deadline: ' + formatDate(v('psDeadline')) : (cur.deadline || ''), status: cur.status || 'open', postedAt: cur.postedAt || todayISO()});
+                if(me.sharedPostings){
+                    b.disabled = true;
+                    try {
+                        const saved = all[key];
+                        key = await window.ICPostingApi.save(saved, id);
+                        setSharedPostings(Object.values(allPostings()).filter(post => post.id !== key).concat({...saved, id: key}));
+                    }
+                    catch(error){ return showToast(error.message || 'Could not save posting.', 'warn'); }
+                    finally { b.disabled = false; }
+                }
                 logAudit((id ? 'Updated' : 'Posted') + ' ' + v('psTitle') + ' (' + company + ')');
                 closeModal(modal);
                 selected = key;
                 showToast(id ? 'Posting saved.' : 'Posted. Students can now see it in Job Matching.', 'success');
             }
-            localStorage.setItem(POSTINGS_KEY, JSON.stringify(all));
+            if(!me.sharedPostings) localStorage.setItem(POSTINGS_KEY, JSON.stringify(all));
             render();
+        });
+        document.addEventListener('input', e => {
+            if(e.target.id !== 'psLoc') return;
+            const lat = document.getElementById('psLat'), lng = document.getElementById('psLng'), status = document.getElementById('psGpsStatus');
+            if(lat) lat.value = '';
+            if(lng) lng.value = '';
+            if(status) status.textContent = 'Location changed. Capture GPS again to update its coordinates.';
         });
         render();
     }

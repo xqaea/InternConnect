@@ -84,7 +84,7 @@ window.ICCore.coordinator.initAttendanceLinks = initCoordinatorAttendanceLinks;
 
 (function () {
   'use strict';
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('ic:coordinator-ready', () => {
     window.ICCore?.coordinator?.initAttendanceExport?.();
     window.ICCore?.coordinator?.initAttendanceLinks?.();
     window.ICCore?.coordinator?.initAttendanceTable?.();
