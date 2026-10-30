@@ -9,39 +9,26 @@ function initStudentTaskDetail({go, session, toast, exportStudentPdf}){
     }).join('\n');
   }
   function initTaskDetail(){
-    const taskData={
-      week5:{title:'Week 5 Accomplishment Report',instructions:'Summarize your work for Sept 15–19. Include hours rendered and key tasks completed.',due:'Due Sept 19, 11:59 PM'},
-      week4:{title:'Week 4 Accomplishment Report',instructions:'Summarize your work for Sept 8–12.',due:'Due Sept 12, 11:59 PM · Verified'}
-    };
-    const params=new URLSearchParams(location.search); const t=taskData[params.get('task')]||taskData.week5;
+    const params=new URLSearchParams(location.search);
+    const selected=findTask(params.get('task'));
+    const me=session() || {};
+    const t=selected && selected.classCode===me.classCode && selected.status!=='archived'?selected:null;
     if(document.getElementById('taskDetailTitle')){
-      document.getElementById('taskDetailTitle').textContent=t.title;
-      document.getElementById('taskDetailInstructions').textContent=t.instructions;
-      document.getElementById('taskDetailDue').innerHTML='<i class="fa-regular fa-calendar mr-1"></i>'+t.due;
+      document.getElementById('taskDetailTitle').textContent=t?t.title:'Task unavailable';
+      document.getElementById('taskDetailInstructions').textContent=t?(t.instructions || ''):'Select an available task from Classwork.';
+      // Real task metadata and attachments are rendered by task-records.js.
+      if(!t) document.getElementById('taskDetailDue').textContent='';
     }
     const ta=document.getElementById('reportTextarea');
     ta?.addEventListener('input',renderHighlight);
     ta?.addEventListener('keydown',function(e){ if(e.key==='Tab'){e.preventDefault(); const s=this.selectionStart,en=this.selectionEnd;this.value=this.value.substring(0,s)+'\t'+this.value.substring(en);this.selectionStart=this.selectionEnd=s+1;renderHighlight();}});
     document.getElementById('backToClassworkBtn')?.addEventListener('click',()=>go('classwork'));
-    const report = () => {
-      const raw = ta?.value.trim() || '';
-      if(!raw){ toast('Write your report first.', 'warn'); return null; }
-      return {title: document.getElementById('taskDetailTitle').textContent, raw, name: (session() || {}).name || 'Student'};
-    };
-    document.getElementById('genPdfBtn')?.addEventListener('click',()=>{
-      const r = report(); if(!r) return;
-      exportStudentPdf('Accomplishment_Report_' + fileSlug(r.name) + '_' + fileSlug(r.title) + '.pdf', r.title, [['Student', r.name], ['Date', todayISO()], ['Report', r.raw]]);
-    });
-    document.getElementById('genWordBtn')?.addEventListener('click',()=>{
-      const r = report(); if(!r) return;
-      const html = '<html><head><meta charset="utf-8"></head><body style="font-family:Calibri,Arial,sans-serif">'
-        + '<h1>' + esc(r.title) + '</h1><p>' + esc(r.name) + ' · ' + todayISO() + '</p><h2>Accomplishment Report</h2><p>'
-        + esc(r.raw).replace(/\r?\n/g, '<br>') + '</p></body></html>';
-      const a = document.createElement('a');
-      a.href = 'data:application/msword;charset=utf-8,' + encodeURIComponent('\ufeff' + html);
-      a.download = 'Accomplishment_Report_' + fileSlug(r.name) + '_' + fileSlug(r.title) + '.doc';
-      a.click();
-    });
+    if(!t){
+      if(ta){ta.value='';ta.disabled=true;}
+      ['submitReportBtn'].forEach(id=>{const button=document.getElementById(id);if(button)button.disabled=true;});
+      renderHighlight();
+      return;
+    }
     renderHighlight();
   }
   initTaskDetail();
@@ -49,7 +36,7 @@ function initStudentTaskDetail({go, session, toast, exportStudentPdf}){
 
 (function () {
   'use strict';
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('ic:student-ready', () => {
     if (document.body.dataset.page === 'taskdetail' && window.ICCore?.student?.initTaskDetail) window.ICCore.student.initTaskDetail();
   }, { once: true });
 })();

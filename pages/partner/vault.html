@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-portal="partner">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=20261030-structured-work">
+    <script src="../../assets/js/theme.js?v=20261030-partner-theme"></script>
     <title>InternConnect - Company Vault</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../../assets/css/styles.css">
-    <script src="../../assets/js/theme.js"></script>
 </head>
 
 <!-- Partner Company Portal -->
@@ -23,15 +23,15 @@
     <!-- Sidebar -->
     <aside id="sidebar" class="fixed lg:sticky top-0 left-0 h-screen w-64 bg-slate-900 text-slate-300 flex flex-col z-40 -translate-x-full lg:translate-x-0">
         <div class="brand-row flex items-center gap-2.5 px-5 py-5 border-b border-white/10">
-            <div class="w-9 h-9 rounded-lg flex items-center justify-center text-white flex-shrink-0">
+            <a href="overview.html" class="w-9 h-9 rounded-lg flex items-center justify-center text-white flex-shrink-0" aria-label="InternConnect overview">
                 <i class="fa-solid fa-link text-sm"></i>
-            </div>
+            </a>
             <div class="sidebar-text min-w-0">
-                <div class="text-white font-bold text-[15px] leading-tight">InternConnect</div>
+                <a href="overview.html" class="block text-white font-bold text-[15px] leading-tight" aria-label="InternConnect overview">InternConnect</a>
                 <div class="text-[10.5px] text-slate-400 tracking-wide">AI-Powered Internship Monitoring Platform</div>
             </div>
-            <button id="collapseBtn" class="hidden lg:flex ml-auto w-6 h-6 rounded-md items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition flex-shrink-0">
-                <i class="fa-solid fa-angles-left text-[11px] transition-transform"></i>
+            <button id="collapseBtn" class="hidden lg:flex ml-auto w-8 h-8 rounded-md items-center justify-center text-slate-300 hover:bg-white/10 hover:text-white transition flex-shrink-0">
+                <i class="fa-solid fa-angles-left transition-transform"></i>
             </button>
             <button id="mobileCloseBtn" class="lg:hidden ml-auto w-8 h-8 rounded-md flex items-center justify-center text-slate-300 hover:bg-white/10 hover:text-white transition flex-shrink-0">
                 <i class="fa-solid fa-xmark"></i>
@@ -175,11 +175,15 @@
 <script src="../../assets/js/core/audit.js"></script>
 <script src="../../assets/js/core/placements.js"></script>
 <script src="../../assets/js/core/retention.js"></script>
+<script src="../../assets/js/core/calendar.js?v=20261030-fast-picker"></script>
 <script src="../../assets/js/core/shell.js"></script>
 <script src="../../assets/js/script.js"></script>
+<script src="../../assets/js/core/postings-api.js?v=20261030-shared-letters"></script>
+<script src="../../assets/js/core/shared-letters.js?v=20261030"></script>
+<script src="../../assets/js/core/notifications.js"></script>
 <script src="../../assets/js/core/jobs.js"></script>
 <script src="../../assets/js/core/company-site-ui.js"></script>
-<script src="../../assets/js/core/vault-ui.js"></script>
-<script src="../../assets/js/partner/portal.js"></script>
+<script src="../../assets/js/core/vault-ui.js?v=20261030-shared-letters"></script>
+<script src="../../assets/js/partner/portal.js?v=20261030-class-theme"></script>
 </body>
 </html>

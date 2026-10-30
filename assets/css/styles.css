@@ -1,11 +1,53 @@
 /* Font */
+/* Keep dashboard navigation painted while its account and page data initialize. */
+html[data-portal]{background:#f1f5f9;--portal-sidebar-width:0px;}
+html[data-portal] body{background:#f1f5f9;}
+html[data-portal].shell-ready:not(.app-ready)::after{content:"";position:fixed;top:0;left:var(--portal-sidebar-width);right:0;height:2px;z-index:101;background:var(--b500);animation:portal-loading 1s ease-in-out infinite;pointer-events:none;}
+@media (min-width:1024px){
+  html[data-portal]{--portal-sidebar-width:256px;}
+  html[data-portal][data-sidebar-collapsed="true"]{--portal-sidebar-width:76px;}
+}
+@keyframes portal-loading{50%{opacity:.35;}}
+@view-transition{navigation:auto;}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.14s;}
+@media (prefers-reduced-motion:reduce){
+  html[data-portal]:not(.app-ready)::after{animation:none;}
+  ::view-transition-old(root),::view-transition-new(root){animation:none;}
+}
 body{font-family:'Inter',system-ui,sans-serif;}
 body:has(#sidebar) > div{visibility:hidden;}
-html.app-ready body:has(#sidebar) > div{visibility:visible;}
+html.shell-ready body:has(#sidebar) > div,html.app-ready body:has(#sidebar) > div{visibility:visible;}
+html:not(.app-ready) #sidebar,html:not(.app-ready) #mainFooter{transition:none;}
+html:not(.app-ready) .notification-dot,html:not(.app-ready) #pNotifDot,html:not(.app-ready) #waitingBadge,html:not(.app-ready) #notifDropdown{visibility:hidden;}
 body:has(#sidebar) main{visibility:hidden;}
 html.app-ready body:has(#sidebar) main{visibility:visible;}
+/* Content placeholders never reveal the static demo values during hydration. */
+html[data-portal] main{position:relative;}
+.portal-loading-placeholder{display:none;}
+html.shell-ready:not(.app-ready) .portal-loading-placeholder{display:block;visibility:visible;position:absolute;inset:24px 20px auto;pointer-events:none;}
+.portal-loading-title,.portal-loading-subtitle,.portal-loading-panel span{background:#e2e8f0;border-radius:6px;}
+.portal-loading-title{width:clamp(140px,30%,240px);height:24px;}
+.portal-loading-subtitle{width:55%;max-width:360px;height:12px;margin-top:12px;}
+.portal-loading-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:28px;}
+.portal-loading-cards span,.portal-loading-panel{background:#fff;border:1px solid #e2e8f0;border-radius:12px;}
+.portal-loading-cards span{height:100px;background:linear-gradient(#e2e8f0,#e2e8f0) 18px 22px / 45% 10px no-repeat,linear-gradient(#edf2f7,#edf2f7) 18px 47px / 30% 22px no-repeat,#fff;}
+.portal-loading-panel{padding:24px;margin-top:20px;}
+.portal-loading-panel span{display:block;height:12px;margin-bottom:22px;width:85%;}
+.portal-loading-panel span:first-child{width:35%;height:16px;margin-bottom:30px;}
+.portal-loading-panel span:last-child{width:60%;margin-bottom:0;}
+@media(min-width:1024px){html.shell-ready:not(.app-ready) .portal-loading-placeholder{left:32px;right:32px;}}
+@media(max-width:639px){.portal-loading-cards{gap:10px;}.portal-loading-cards span{height:80px;background-position:12px 18px,12px 40px;}.portal-loading-panel{padding:20px;}}
 
 /* Nav Links */
+.career-dialog{width:min(680px,calc(100vw - 24px));max-height:calc(100dvh - 32px);margin:auto;overflow-y:auto;}
+.career-dialog::backdrop{background:rgba(15,23,42,.45);}
+.student-document-viewer{width:min(900px,calc(100vw - 24px));height:85dvh;max-height:calc(100dvh - 24px);padding:0;border:1px solid #e2e8f0;border-radius:8px;background:#fff;margin:auto;}
+.student-document-viewer[open]{display:flex;flex-direction:column;}
+.student-document-viewer::backdrop{background:rgba(15,23,42,.45);}
+.student-document-toolbar{display:flex;align-items:center;gap:16px;padding:12px 16px;border-bottom:1px solid #e2e8f0;font:13px Inter,system-ui,sans-serif;}
+.student-document-toolbar strong{flex:1;min-width:0;overflow-wrap:anywhere;}
+.student-document-toolbar button,.student-document-toolbar a{flex-shrink:0;color:#475569;font:inherit;cursor:pointer;}
+.student-document-content{display:block;width:100%;flex:1;min-height:0;border:0;object-fit:contain;}
 .nav-link.active{background:linear-gradient(90deg,var(--navA),rgba(255,255,255,0.02));border-left:3px solid var(--b500);color:#fff;}
 .nav-link.active i{color:var(--b400);}
 .nav-link{border-left:3px solid transparent;}
@@ -32,6 +74,17 @@ body[data-page="jobs"] #sidebar .nav-link[data-tab="jobs"] i{color:var(--b400);}
 .log-item.selected{background:var(--b50);border-color:var(--b600);}
 
 /* Role Switcher (Login and Register) */
+#loginForm{position:relative;}
+#loginForm.login-loading #loginContent{visibility:hidden;}
+.login-skeleton{position:absolute;inset:0;pointer-events:none;}
+.login-skeleton[hidden]{display:none;}
+.login-skeleton > div{background:#e2e8f0;border-radius:6px;}
+.login-skeleton-title{height:24px;width:100px;}
+.login-skeleton-caption{height:12px;width:75%;margin:10px 0 22px;}
+.login-skeleton-pills{height:36px;margin-bottom:22px;}
+.login-skeleton-label{height:10px;width:85px;margin:14px 0 8px;}
+.login-skeleton-field{height:42px;margin-bottom:12px;background:#edf2f7!important;border:1px solid #e2e8f0;}
+.login-skeleton-button{background:#cbd5e1!important;}
 .role-btn{color:#475569;}
 .role-btn.active{background:#fff;color:#0F172A;box-shadow:0 1px 3px rgba(0,0,0,0.12);}
 
@@ -48,6 +101,52 @@ body[data-page="jobs"] #sidebar .nav-link[data-tab="jobs"] i{color:var(--b400);}
 .resume-subtab-btn.active:hover{background:var(--bd);}
 
 /* Sidebar Collapse */
+/* Harvard-style personal resume: one column and plain, high-contrast text. */
+.resume-document{font-family:Georgia,'Times New Roman',serif;color:#000;width:100%;max-width:210mm;aspect-ratio:210 / 297;margin-inline:auto;padding:clamp(18px,5vw,14mm);box-sizing:border-box;}
+.resume-document .resume-heading{text-align:left;border:0;display:flex;align-items:center;gap:16px;}
+.resume-document .resume-heading:has(> #pv-photo.hidden){text-align:center;}
+.resume-document .resume-heading > :not(#pv-photo){flex:1;min-width:0;}
+.resume-document #pv-photo{order:1;flex-shrink:0;margin:0 0 0 auto;width:1.6in;height:auto;aspect-ratio:1;max-width:40%;border-radius:50%;}
+.resume-document #pv-name{font-size:clamp(24px,4vw,32px);line-height:1.15;color:#000;width:100%;overflow-wrap:anywhere;}
+.resume-document #pv-contact{font-size:clamp(12px,2vw,14px);line-height:1.5;color:#000;overflow-wrap:anywhere;margin-top:8px;}
+.resume-document h3{color:#000;font-size:14pt;font-weight:700;letter-spacing:0;border-bottom:1px solid #000;padding-bottom:3px;width:100%;}
+.resume-document p,.resume-document ul,.resume-document [id^="pv-"]{color:#000;}
+.resume-document > .border-b{border-bottom:0;}
+.resume-document > .py-3,.resume-document #pv-customsections > div{padding-top:7px;padding-bottom:7px;}
+.resume-document .resume-heading{padding-bottom:10px;}
+.resume-document > .grid{gap:10px;}
+.resume-document #pv-customsections:empty{display:none;}
+.resume-document #pv-education{white-space:normal;}
+.resume-document .resume-education-school{font-size:10pt;font-style:italic;line-height:1.4;margin-top:2px;overflow-wrap:anywhere;}
+.resume-work-action{font:500 12px Inter,system-ui,sans-serif;color:#525252;background:#fff;border:1px solid #d4d4d4;border-radius:6px;padding:6px 10px;cursor:pointer;}
+.resume-work-action:hover{border-color:#737373;}
+.resume-work-edit{border:1px solid #e2e8f0;border-radius:6px;padding:12px;}
+.resume-bullet-edit{display:flex;align-items:center;gap:8px;}
+.resume-bullet-edit input{flex:1;min-width:0;border:1px solid #cbd5e1;border-radius:6px;padding:8px 12px;font-size:13px;}
+.resume-document .resume-work-entry{margin-top:8px;}
+.resume-document .resume-work-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:11pt;}
+.resume-document .resume-work-heading strong{flex:1;min-width:0;overflow-wrap:anywhere;}
+.resume-document .resume-work-dates{flex-shrink:0;white-space:nowrap;font-size:11pt;font-weight:700;}
+.resume-document .resume-work-position{font-size:10pt;font-style:italic;font-weight:700;line-height:1.4;margin-top:2px;}
+.resume-document .resume-work-subheading .resume-work-position{flex:1;min-width:0;overflow-wrap:anywhere;}
+.resume-document .resume-work-location{max-width:45%;text-align:right;font-size:11pt;overflow-wrap:anywhere;}
+.resume-document .resume-work-entry ul{margin-top:4px;padding-left:32px;list-style-position:outside;}
+.resume-document ul{display:block;list-style:disc outside;padding-left:18px;margin:0;}
+.resume-document li{padding-left:2px;margin-top:3px;overflow-wrap:anywhere;}
+.resume-document p,.resume-document ul,.resume-document li{font-size:11pt;line-height:1.4;}
+.resume-document p,.resume-document li,.resume-document .resume-work-position{text-align:justify;}
+.resume-document #pv-softskills,.resume-document #pv-hardskills{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px 16px;padding-left:0;list-style:none;}
+.resume-document .resume-skill-column{display:grid;grid-template-rows:subgrid;grid-row:span 3;margin:0;padding:0;list-style:none;min-width:0;}
+.resume-document .resume-skill-column > ul{display:grid;grid-template-rows:subgrid;grid-row:span 3;}
+.resume-document :is(#pv-softskills,#pv-hardskills),.resume-document :is(#pv-softskills,#pv-hardskills) :is(ul,li){font-size:10pt;text-align:left;}
+.resume-document .resume-skill-column > ul > li{margin-top:0;}
+.resume-date-range{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+.resume-date-range > div{min-width:0;}
+.resume-inline-date-range{display:flex;align-items:center;gap:8px;min-width:0;}
+.resume-inline-date-range .resume-month-input{flex:1;min-width:0;max-width:144px;min-height:44px;cursor:pointer;}
+.resume-date-range .resume-month-input{min-width:0;min-height:44px;max-width:100%;border-radius:10px;background:#f8fafc;cursor:pointer;transition:border-color .15s,background-color .15s;}
+.resume-month-input:hover{border-color:#94a3b8;background:#fff;}
+.resume-month-input::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.75;padding:4px;}
 #sidebar{transition:width .2s ease, transform .2s ease;}
 @media (min-width:1024px){
 #sidebar.collapsed{width:76px;}
@@ -58,6 +157,7 @@ body[data-page="jobs"] #sidebar .nav-link[data-tab="jobs"] i{color:var(--b400);}
 #sidebar.collapsed #collapseBtn{margin-left:0;}
 #sidebar.collapsed #collapseBtn i{transform:rotate(180deg);}
 #sidebar.collapsed .group-label{display:none;}
+body[data-role="student"] #sidebar.collapsed .student-sidebar-profile{justify-content:center;padding-left:0;padding-right:0;}
 }
 
 /* Footer */
@@ -169,14 +269,51 @@ html[data-theme="rose"]{--navA:rgba(244,63,94,0.18);}
 .skill-picker{font-size:11px;line-height:1.2;color:#475569;background:#fff;border:1px solid #CBD5E1;border-radius:8px;padding:5px 26px 5px 9px;cursor:pointer;transition:box-shadow .15s,border-color .15s,background .15s;}
 .skill-picker:hover{background:#F8FAFC;border-color:var(--b200);}
 .skill-picker:focus{outline:none;border-color:var(--b400);box-shadow:0 0 0 3px rgba(56,189,248,.16);}
-/* Attendance calendar */
-.cal-day{height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;font-size:12.5px;color:#475569;position:relative;transition:.12s;}
-.cal-day.weekend{color:#CBD5E1;}
-.cal-day.present{background:#ECFDF5;color:#047857;font-weight:600;cursor:pointer;}
-.cal-day.absent{background:#FEF2F2;color:#DC2626;font-weight:600;cursor:pointer;}
-.cal-day.empty{visibility:hidden;}
-.cal-day.present:hover,.cal-day.absent:hover{outline:2px solid var(--b600);}
-.cal-dot{width:4px;height:4px;border-radius:50%;background:currentColor;margin-top:3px;}
+/* Shared monthly calendar: date pickers and attendance. */
+.ic-calendar{box-sizing:border-box;width:288px;max-width:min(100%,calc(100vw - 24px));padding:12px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;color:#262626;font:12px Inter,system-ui,sans-serif;box-shadow:none;}
+.ic-calendar-popup{position:fixed;inset:auto;margin:0;z-index:1000;max-height:calc(100dvh - 16px);overflow:auto;}
+.ic-calendar-header{display:grid;grid-template-columns:28px minmax(0,1fr) 28px;align-items:center;gap:8px;margin-bottom:12px;}
+.ic-calendar-title{min-height:28px;text-align:center;}
+.ic-calendar-jump{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;}
+.ic-calendar-jump[hidden]{display:none;}
+.ic-calendar-jump select,.ic-calendar-jump input{border:1px solid #e5e5e5;background:#fff;padding:4px;color:#171717;font:inherit;box-shadow:none;border-radius:4px;}
+.ic-calendar-jump select{width:112px;min-height:28px;cursor:pointer;}
+.ic-calendar-jump input{width:56px;min-height:28px;appearance:textfield;}
+.ic-calendar-jump input::-webkit-inner-spin-button{appearance:none;}
+.ic-calendar .ic-calendar-arrow{display:flex;align-items:center;justify-content:center;width:28px;height:28px;font-size:16px;color:#525252;}
+.ic-calendar button{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;box-shadow:none;}
+.ic-calendar button:disabled{opacity:.35;cursor:default;}
+.ic-calendar button:focus-visible,.ic-calendar select:focus-visible,.ic-calendar input:focus-visible{outline:1px solid #737373;outline-offset:3px;}
+.ic-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;}
+.ic-calendar .ic-calendar-day,.ic-calendar-weekday{display:flex;width:100%;height:34px;align-items:center;justify-content:center;position:relative;font-size:12px;}
+.ic-calendar-weekday{height:24px;font-size:10px;color:#737373;}
+.ic-calendar-number{display:flex;width:26px;height:26px;align-items:center;justify-content:center;}
+.ic-calendar-number.is-today{font-weight:600;text-decoration:underline;text-underline-offset:4px;}
+.ic-calendar-number.is-selected{border-radius:4px;background:#262626;color:#fff;text-decoration:none;}
+.ic-calendar-record{position:absolute;bottom:0;font-size:12px;line-height:8px;color:#525252;}
+.ic-calendar-footer{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;margin-top:12px;font-size:11px;color:#525252;}
+.ic-calendar-footer .ic-calendar-shortcut{flex:1;min-height:30px;padding:4px 6px;border:1px solid #e5e5e5;border-radius:4px;white-space:nowrap;}
+.ic-calendar-footer .ic-calendar-shortcut:hover{border-color:#737373;}
+.ic-date-picker{box-sizing:border-box;width:280px;max-width:calc(100vw - 24px);padding:12px;border:1px solid #e5e5e5;border-radius:6px;background:#fff;color:#262626;font:12px Inter,system-ui,sans-serif;box-shadow:none;}
+.ic-picker-title{font-size:12px;font-weight:500;margin-bottom:12px;}
+.ic-picker-columns{display:flex;gap:12px;}
+.ic-picker-column{flex:1;min-width:0;}
+.ic-picker-label{display:block;font-size:11px;color:#737373;margin-bottom:6px;}
+.ic-picker-select{width:100%;height:36px;border:1px solid #e5e5e5;border-radius:4px;padding:4px;background:#fff;color:#262626;font:inherit;}
+.ic-wheel-frame{position:relative;}
+.ic-wheel-frame::before{content:'';position:absolute;top:72px;left:0;right:0;height:36px;background:#f5f5f5;pointer-events:none;}
+.ic-picker-wheel{position:relative;box-sizing:border-box;height:180px;padding-block:72px;overflow-y:auto;scroll-snap-type:y mandatory;overscroll-behavior:contain;touch-action:pan-y;scrollbar-width:none;}
+.ic-picker-wheel::-webkit-scrollbar{display:none;}
+.ic-wheel-option{height:36px;display:flex;align-items:center;justify-content:center;scroll-snap-align:center;font-size:13px;color:#a3a3a3;cursor:pointer;}
+.ic-wheel-option[aria-selected="true"]{font-weight:600;color:#262626;}
+.ic-picker-message{font-size:11px;color:#737373;margin:8px 0;}
+.ic-picker-message:empty{display:none;}
+.ic-picker-footer{display:flex;justify-content:flex-end;align-items:center;gap:16px;margin-top:12px;}
+.ic-picker-footer button{border:0;background:none;padding:6px 0;font:inherit;color:#737373;cursor:pointer;}
+.ic-picker-footer button:first-child{margin-right:auto;}
+.ic-picker-footer .ic-picker-done{color:#262626;font-weight:600;}
+.ic-picker-footer button:disabled{opacity:.35;cursor:default;}
+.ic-date-picker :focus-visible{outline:1px solid #737373;outline-offset:2px;}
 .highlight-mark{background:#FEF3C7;border-radius:3px;padding:0 2px;}
 
 /* Mobile navigation and resume content must fit the available viewport. */

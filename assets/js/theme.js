@@ -12,7 +12,13 @@ function applyTheme(theme){
 
 // Logged-in user's theme (set at login / sign up, cleared at logout)
 const icSession = getJSON('ic_session', null);
-applyTheme(icSession && icSession.theme);
+const icInitialClass = (icSession?.role === 'student' || (icSession?.role === 'partnercompany' && !icSession.databaseAccount)) ? getJSON('ic_classes', {})[icSession.classCode] : null;
+applyTheme(icInitialClass?.theme || icSession?.theme);
+if(document.documentElement.hasAttribute('data-portal')){
+    try{
+        document.documentElement.dataset.sidebarCollapsed = String(localStorage.getItem('sidebarCollapsed') === 'true');
+    }catch(e){}
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.export-btn').forEach(btn => btn.addEventListener('click', () => {

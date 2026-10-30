@@ -49,6 +49,21 @@ function initCoordinatorClasses(){
         const code = btn.dataset.code;
         if(btn.dataset.act === 'open'){ setActiveClass(code); goTo('roster'); return; }
         if(btn.dataset.act === 'current'){ setActiveClass(code); showToast('Current batch changed to ' + code + '.', 'info'); }
+        if((getJSON('ic_session', {}) || {}).databaseAccount && ['archive', 'restore', 'delete'].includes(btn.dataset.act)){
+            const action = btn.dataset.act;
+            if(action === 'delete' && !await askConfirm('Delete this empty batch? This cannot be undone.')) return;
+            if(action === 'archive' && !await askConfirm('Archive this batch? Its records are kept.')) return;
+            btn.disabled = true;
+            try{
+                if(action === 'delete') await window.ICCoordinatorApi.deleteBatch(code);
+                else await window.ICCoordinatorApi.updateBatch(code, {status: action === 'archive' ? 'archived' : 'closed'});
+                await window.syncCoordinatorState();
+                refreshHeaderCode(); renderClasses();
+                showToast('Batch updated.', 'success');
+            }catch(error){ showToast(error.message || 'Could not update the batch. Refresh and try again.', 'warn'); }
+            finally { btn.disabled = false; }
+            return;
+        }
         if(btn.dataset.act === 'archive'){ if(!await askConfirm('Archive this batch? Its records are kept.')) return; updateClass(code, {status: 'archived'}); showToast('Batch archived. Its records are kept.', 'info'); }
         if(btn.dataset.act === 'restore'){ updateClass(code, {status: 'closed'}); showToast('Batch restored.', 'info'); }
         if(btn.dataset.act === 'rename'){ openBatchModal(code); return; }
@@ -79,9 +94,29 @@ function initCoordinatorClasses(){
     window.openBatchModal = openBatchModal;
     on('openBatchModalBtn', 'click', () => openBatchModal());
     on('cancelBatchBtn', 'click', () => closeModal(batchModal));
-    on('createBatchBtn', 'click', () => {
+    on('createBatchBtn', 'click', async () => {
         const term = document.getElementById('batchTermInput').value.trim();
         if(!term) return showToast('Enter a batch name first.', 'warn');
+        const coordinator = getJSON('ic_session', {}) || {};
+        if(coordinator.databaseAccount){
+            const button = document.getElementById('createBatchBtn');
+            if(button.disabled) return;
+            button.disabled = true;
+            try{
+                let code = editingCode;
+                if(code) await window.ICCoordinatorApi.updateBatch(code, {term});
+                else {
+                    code = (programShort(coordinator.program) || 'OJT') + '-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+                    await window.ICCoordinatorApi.createBatch({code, term});
+                }
+                await window.syncCoordinatorState();
+                if(!editingCode) setActiveClass(code);
+                closeModal(batchModal); refreshHeaderCode(); renderClasses();
+                showToast(editingCode ? 'Batch renamed.' : 'Batch created. Class code: ' + code, 'success');
+            }catch(error){ showToast(error.message || 'Could not save the batch. Refresh and try again.', 'warn'); }
+            finally { button.disabled = false; }
+            return;
+        }
         if(editingCode){
             updateClass(editingCode, {term});
             closeModal(batchModal);
@@ -108,7 +143,7 @@ window.ICCore.coordinator.initClasses = initCoordinatorClasses;
 
 (function () {
   'use strict';
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('ic:coordinator-ready', () => {
     window.ICCore?.coordinator?.initClasses?.();
   }, { once: true });
 })();

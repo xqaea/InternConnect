@@ -2,18 +2,7 @@ let rosterMembers = [];
 
 function loadRoster(){
     const code = activeClassCode();
-    const real = getUsers()
-        .filter(u => u.role === 'student' && u.classCode === code && u.status !== 'pending')
-        .map(u => ({id: u.email, real: true, name: u.name, company: u.company || '—', hours: u.ojtHours || u.hours || 0,
-                    requested: u.status === 'alumni_pending',
-                    status: u.status === 'alumni_pending' ? 'intern' : (u.status || 'intern'), completedAt: u.completedAt, withdrawnAt: u.withdrawnAt, employment: u.employment || 'seeking'}));
-    const placed = placementList().filter(p => !p.roster && p.deployedAt)
-        .map(p => Object.assign({id: 'p:' + p.name, placement: true, name: p.name, company: p.company, hours: p.hours || 0, status: 'intern'}, p.rosterPatch || {}));
-    const store = getPlacementStore();
-    const credited = Object.fromEntries(placementList().map(p => [p.name, p.hours]));
-    rosterMembers = real.concat(placed, sampleFor(code).map(m => Object.assign({sample: true}, m, (store[m.name] || {}).rosterPatch || {})))
-        .filter(m => !isAnonymized(m.name))
-        .map(m => credited[m.name] != null && m.status === 'intern' ? Object.assign(m, {hours: credited[m.name]}) : m);
+    rosterMembers = rosterMembersFor(code);
 }
 function memberName(m){
     return '<div><a href="' + profileLink(m.name) + '" class="font-semibold text-slate-900 hover:text-sky-700 hover:underline">' + esc(m.name) + '</a>' + (m.requested ? ' <span class="ml-1 text-[9.5px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">Alumni requested</span>' : '') + '</div>';
@@ -53,6 +42,12 @@ function renderRoster(){
         document.getElementById(id + 'Empty').classList.toggle('hidden', rows.length > 0);
     };
     fill('rosterInternsBody', interns.map(m => {
+        if(!m.company || m.company === '—'){
+            return '<tr><td class="px-4 py-3">' + memberName(m) + '</td>'
+                + '<td class="px-4 py-3 text-slate-600">Not placed yet</td>'
+                + '<td class="px-4 py-3 text-slate-500">-</td>'
+                + '<td class="px-4 py-3 text-slate-500">-</td></tr>';
+        }
         const pct = Math.min(100, Math.round(m.hours / REQUIRED_HOURS * 100));
         const done = m.hours >= REQUIRED_HOURS;
         const evalIn = done && hasDoc(m.company, m.name, 'Supervisor evaluation');
@@ -125,6 +120,12 @@ function initCoordinatorRoster(){
         const ready = rosterMembers.filter(m => m.status === 'intern' && m.hours >= REQUIRED_HOURS && hasDoc(m.company, m.name, 'Supervisor evaluation'));
         const ongoing = rosterMembers.filter(m => m.status === 'intern').length - ready.length;
         if(!await askConfirm('Close this batch? ' + ready.length + ' intern(s) with complete hours and a supervisor evaluation will become alumni. ' + ongoing + ' will stay until they finish. No new students can join.')) return;
+        if((getJSON('ic_session', {}) || {}).databaseAccount){
+            try{
+                await window.ICCoordinatorApi.updateBatch(activeClassCode(), {status: 'closed'});
+                await window.syncCoordinatorState();
+            }catch(error){ return showToast(error.message || 'Could not close this batch. Refresh and try again.', 'warn'); }
+        }
         ready.forEach(m => setMember(m, {status: 'alumni', completedAt: todayISO(), employment: 'seeking'}));
         updateClass(activeClassCode(), {status: 'closed'});
         renderRoster();
@@ -137,7 +138,7 @@ window.ICCore.coordinator.initRoster = initCoordinatorRoster;
 
 (function () {
   'use strict';
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('ic:coordinator-ready', () => {
     window.ICCore?.coordinator?.initRoster?.();
     window.ICCore?.coordinator?.initDeletions?.();
   }, { once: true });

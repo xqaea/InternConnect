@@ -1,55 +1,56 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-portal="student">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=20261030-aligned-skills">
+    <script src="../../assets/js/theme.js?v=20261030-partner-theme"></script>
     <title>Resume Builder — InternConnect</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../../assets/css/styles.css">
-    <script src="../../assets/js/theme.js"></script>
   </head>
   <body class="bg-slate-100 text-slate-800" data-role="student" data-page="resume">
     <div class="flex min-h-screen">
       <button id="mobileToggle" class="lg:hidden fixed top-3 left-3 z-50 bg-slate-900 text-white w-9 h-9 rounded-md flex items-center justify-center shadow-lg"><i class="fa-solid fa-bars"></i></button>
-      <aside class="fixed lg:sticky top-0 left-0 h-screen w-64 bg-slate-900 text-slate-300 flex flex-col z-40 -translate-x-full lg:translate-x-0 transition-transform duration-200" id="sidebar">
-        <div class="flex items-center gap-2.5 px-5 py-5 border-b border-white/10">
-          <div class="w-9 h-9 flex items-center justify-center text-sky-600 flex-shrink-0">
+      <aside class="fixed lg:sticky top-0 left-0 h-screen w-64 flex-shrink-0 bg-slate-900 text-slate-300 flex flex-col z-40 -translate-x-full lg:translate-x-0 transition-transform duration-200" id="sidebar">
+        <div class="brand-row flex items-center gap-2.5 px-5 py-5 border-b border-white/10">
+          <a href="overview.html" class="w-9 h-9 flex items-center justify-center text-sky-600 flex-shrink-0" aria-label="InternConnect overview">
             <i class="fa-solid fa-link text-sm text-white"></i>
+          </a>
+          <div class="sidebar-text min-w-0 flex-1">
+            <a href="overview.html" class="block text-white font-bold text-[15px] leading-tight truncate" aria-label="InternConnect overview">InternConnect</a>
+            <div class="text-[10.5px] text-slate-400 tracking-wide truncate">Student &amp; Alumni Portal</div>
           </div>
-          <div class="min-w-0">
-            <div class="text-white font-bold text-[15px] leading-tight">InternConnect</div>
-            <div class="text-[10.5px] text-slate-400 tracking-wide">Student &amp; Alumni Portal</div>
-          </div>
+          <button id="collapseBtn" type="button" class="hidden lg:flex ml-auto w-8 h-8 rounded-md items-center justify-center text-slate-300 hover:bg-white/10 hover:text-white transition flex-shrink-0" aria-label="Collapse sidebar" title="Collapse sidebar"><i class="fa-solid fa-angles-left"></i></button>
           <button class="lg:hidden ml-auto w-8 h-8 rounded-md flex items-center justify-center text-slate-300 hover:bg-white/10 hover:text-white transition flex-shrink-0" id="mobileCloseBtn">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
         <nav class="flex-1 px-2 pt-4 space-y-0.5">
           <a class="nav-link active w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" data-tab="overview" href="../student/overview.html">
-            <i class="fa-solid fa-gauge-high w-4 text-center"></i> Overview
+            <i class="fa-solid fa-gauge-high w-4 text-center"></i> <span class="sidebar-text">Overview</span>
           </a>
           <a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition student-only-nav" data-tab="attendance" href="../student/attendance.html">
-            <i class="fa-solid fa-calendar-check w-4 text-center"></i> Attendance
+            <i class="fa-solid fa-calendar-check w-4 text-center"></i> <span class="sidebar-text">Attendance</span>
           </a>
           <a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition student-only-nav" data-tab="classwork" href="../student/classwork.html">
-            <i class="fa-solid fa-list-check w-4 text-center"></i> Classwork &amp; Tasks
+            <i class="fa-solid fa-list-check w-4 text-center"></i> <span class="sidebar-text">Classwork &amp; Tasks</span>
           </a>
           <a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" data-tab="resume" href="../student/resume-builder.html">
-            <i class="fa-solid fa-file-shield w-4 text-center"></i> Resume Builder
+            <i class="fa-solid fa-file-shield w-4 text-center"></i> <span class="sidebar-text">Resume Builder</span>
           </a>
           <a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" data-tab="jobs" href="../student/job-matching.html">
-            <i class="fa-solid fa-magnifying-glass-dollar w-4 text-center"></i> <span id="jobsNavLabel">Internship Matching</span>
+            <i class="fa-solid fa-magnifying-glass-dollar w-4 text-center"></i> <span class="sidebar-text" id="jobsNavLabel">Internship Matching</span>
           </a>
-          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold px-4 pt-4 pb-1">Session</div>
+          <div class="group-label text-[10px] uppercase tracking-wider text-slate-500 font-semibold px-4 pt-4 pb-1">Session</div>
           <button class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" id="logoutBtn" title="Logout">
-            <i class="fa-solid fa-right-to-bracket w-4 text-center"></i> Logout
+            <i class="fa-solid fa-right-to-bracket w-4 text-center"></i> <span class="sidebar-text">Logout</span>
           </button>
         </nav>
-        <div class="px-5 py-4 border-t border-white/10 flex items-center gap-3">
+        <div class="student-sidebar-profile px-5 py-4 border-t border-white/10 flex items-center gap-3">
           <div data-user="avatar" class="overflow-hidden w-8 h-8 rounded-full bg-sky-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0"></div>
-          <div class="min-w-0 flex-1">
+          <div class="sidebar-text min-w-0 flex-1">
             <div data-user="name" class="text-white text-[12.5px] font-medium truncate"></div>
             <div data-user="program" class="text-[10.5px] text-slate-400 truncate"></div>
           </div>
@@ -72,7 +73,7 @@
             <div class="relative">
               <button class="relative w-9 h-9 rounded-md flex items-center justify-center text-slate-500 hover:bg-slate-100 transition" id="notifBtn">
                 <i class="fa-regular fa-bell"></i>
-                <span class="notification-dot absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+                <span class="notification-dot hidden absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
               </button>
               <div class="hidden absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-xl shadow-lg z-30 overflow-hidden" id="notifDropdown">
                 <div class="px-4 py-3 border-b border-slate-100 font-semibold text-slate-900 text-sm">Notifications</div>
@@ -96,7 +97,9 @@
                 <h1 class="text-xl font-bold text-slate-900">Resume Builder</h1>
                 <p class="text-sm text-slate-500 mt-0.5">Your profile, skills, and verified accomplishments — all in one place.</p>
               </div>
-              <button id="exportResumePdfBtn" class="text-[12.5px] font-semibold text-white bg-slate-900 hover:bg-slate-800 px-4 py-2.5 rounded-md transition"><i class="fa-solid fa-file-arrow-down mr-1.5"></i>Export PDF</button>
+              <div class="flex flex-wrap gap-2">
+                <button id="exportResumePdfBtn" class="text-[12.5px] font-semibold text-white bg-slate-900 hover:bg-slate-800 px-4 py-2.5 rounded-md transition"><i class="fa-solid fa-file-arrow-down mr-1.5"></i>Export PDF</button>
+              </div>
             </div>
             <div class="flex items-center gap-1.5 bg-white rounded-lg border border-slate-200 p-1 w-fit">
               <button class="resume-subtab-btn active text-[12.5px] font-semibold px-3.5 py-1.5 rounded-md transition" data-resumetab="resume-preview">Preview</button>
@@ -104,8 +107,9 @@
             </div>
             <!-- ===== PREVIEW ===== -->
             <div class="resume-subtab-panel" id="resume-preview">
-              <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 w-full min-h-[calc(100vh-250px)]">
-                <div class="flex items-start gap-4 pb-4 border-b border-slate-100">
+              <div class="resume-document bg-white rounded-xl border border-slate-200 shadow-sm w-full">
+                <div class="resume-heading relative pb-4">
+                  <div id="pv-photo" class="hidden w-16 h-16 overflow-hidden mb-3 mx-auto"></div>
                   <div class="flex-1">
                     <div class="flex items-center gap-2">
                       <h2 class="text-lg font-bold text-slate-900" id="pv-name"></h2>
@@ -115,34 +119,34 @@
                 </div>
                 <div class="py-3 border-b border-slate-100">
                   <div class="flex items-center justify-between mb-1">
-                    <h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Objective</h3>
+                    <h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Summary</h3>
                   </div>
                   <p class="text-[13px] text-slate-600 leading-relaxed" id="pv-objective">Computer Science student seeking an OJT placement to apply and grow my skills in software development and QA.</p>
                 </div>
                 <div class="py-3 border-b border-slate-100" id="pv-workexp-wrap">
                   <div class="flex items-center justify-between mb-1.5">
-                    <h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Work Experience</h3>
+                    <h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Related Experiences</h3>
                   </div>
-                  <div class="text-[13px] text-slate-600 space-y-1" id="pv-workexp"></div>
+                  <div id="pv-workexp"></div>
                 </div>
                 <div class="py-3 border-b border-slate-100">
                   <div class="flex items-center justify-between mb-1.5">
                     <h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Education</h3>
                   </div>
-                  <p class="text-[13px] text-slate-600" id="pv-education"></p>
+                  <div class="text-[13px] text-slate-600" id="pv-education"></div>
                 </div>
                 <div class="py-3 border-b border-slate-100 grid gap-4">
                   <div>
                     <div class="flex items-center justify-between mb-1.5">
                       <h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Soft Skills</h3>
                     </div>
-                    <div class="flex flex-wrap gap-1.5" id="pv-softskills"></div>
+                    <ul class="flex flex-wrap gap-1.5" id="pv-softskills"></ul>
                   </div>
                   <div>
                     <div class="flex items-center justify-between mb-1.5">
                       <h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Technical Skills</h3>
                     </div>
-                    <div class="flex flex-wrap gap-1.5" id="pv-hardskills"></div>
+                    <ul class="flex flex-wrap gap-1.5" id="pv-hardskills"></ul>
                   </div>
                 </div>
                 <div class="py-3 border-b border-slate-100" id="pv-certs-wrap">
@@ -155,7 +159,7 @@
                   <div class="flex items-center justify-between mb-1.5">
                     <h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Projects</h3>
                   </div>
-                  <p class="text-[13px] text-slate-600" id="pv-projects"></p>
+                  <ul class="text-[13px] text-slate-600" id="pv-projects"></ul>
                 </div>
                 <div class="py-3 border-b border-slate-100" id="pv-volunteer-wrap">
                   <div class="flex items-center justify-between mb-1.5">
@@ -165,29 +169,31 @@
                 </div>
                 <div class="py-3 border-b border-slate-100" id="pv-awards-wrap">
                   <div class="flex items-center justify-between mb-1.5">
-                    <h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Awards &amp; Honors</h3>
+                    <h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Honors and Awards</h3>
                   </div>
                   <ul class="text-[13px] text-slate-600 space-y-1 list-disc list-inside" id="pv-awards"></ul>
                 </div>
                 <div class="space-y-3" id="pv-customsections"></div>
-                <div class="pt-3">
+              </div>
+              <div class="mt-4 bg-white rounded-xl border border-slate-200 shadow-sm p-5 max-w-[794px] mx-auto" id="verifiedExperiencePanel">
                   <div class="flex items-center gap-1.5 mb-1.5"><i class="fa-solid fa-lock text-emerald-500 text-[11px]"></i><h3 class="text-[11px] font-semibold text-emerald-600 uppercase tracking-wide">Verified Internship Experience</h3></div>
                   <p class="text-[10.5px] text-slate-400 mb-2">Verified from approved OJT accomplishment reports. This section is locked after coordinator verification.</p>
                   <div class="space-y-2" id="pv-verified">
                     <div class="flex items-start justify-between gap-3 text-[13px] text-slate-600"><p>Assisted in database migration and performed API unit testing under supervisor guidance.</p><button class="request-edit-btn text-[11px] font-medium text-sky-600 hover:text-sky-700 whitespace-nowrap flex-shrink-0">Request Edit</button></div>
                     <div class="flex items-start justify-between gap-3 text-[13px] text-slate-600"><p>Refactored authentication module and reviewed teammate's pull requests.</p><button class="request-edit-btn text-[11px] font-medium text-sky-600 hover:text-sky-700 whitespace-nowrap flex-shrink-0">Request Edit</button></div>
                   </div>
-                </div>
               </div>
             </div>
             <!-- ===== EDIT ===== -->
             <div class="resume-subtab-panel hidden" id="resume-edit">
               <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-6">
                 <div class="flex items-center gap-4">
-                  <div class="w-16 h-16 rounded-full bg-slate-200 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 flex-shrink-0"><i class="fa-solid fa-user text-xl"></i></div>
+                  <button type="button" id="resumePhotoPlaceholder" aria-label="Upload profile photo" title="Upload profile photo" class="w-16 h-16 rounded-full bg-slate-200 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 flex-shrink-0 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-600"><i class="fa-solid fa-user text-xl"></i></button>
                   <div>
                     <button id="uploadResumePhotoBtn" class="text-[12px] font-semibold text-sky-600 hover:text-sky-700"><i class="fa-solid fa-camera mr-1.5"></i>Upload Photo</button>
-                    <p class="text-[10.5px] text-slate-400 mt-0.5">Shown on your profile and resume.</p>
+                    <p class="text-[10.5px] text-slate-400 mt-0.5">Your profile photo can optionally appear on your resume.</p>
+                    <label class="flex items-center gap-2 mt-2 text-[12px] text-slate-600"><input type="checkbox" id="includePhotoToggle" class="accent-sky-600">Include photo on resume</label>
+                    <p class="text-[10.5px] text-slate-400 mt-1">Leave off for ATS applications.</p>
                   </div>
                 </div>
                 <div class="border border-dashed border-sky-200 bg-sky-50/50 rounded-lg p-4 flex flex-wrap items-center justify-between gap-3">
@@ -216,16 +222,44 @@
                   <input class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" id="ed-email" type="text" value=""/>
                 </div>
                 <div>
-                  <label class="text-[13px] font-semibold text-slate-700 block mb-1">Resume Objective</label>
+                  <label class="text-[13px] font-semibold text-slate-700 block mb-1">Summary</label>
                   <textarea class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" id="ed-objective" rows="2">Computer Science student seeking an OJT placement to apply and grow my skills in software development and QA.</textarea>
                 </div>
                 <div>
-                  <label class="text-[13px] font-semibold text-slate-700 block mb-1">Work Experience <span class="text-slate-400 font-normal">(if any — one per line)</span></label>
-                  <textarea class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" id="ed-workexp" placeholder="e.g., Part-time Store Assistant — 2024–2025" rows="2"></textarea>
+                  <div class="flex items-center justify-between gap-3 mb-1"><label class="text-[13px] font-semibold text-slate-700">Work Experience <span class="text-slate-400 font-normal">(if any)</span></label><button id="addWorkExperienceBtn" type="button" class="resume-work-action">Add experience</button></div>
+                  <div id="workExperienceRows" class="space-y-3">
+                  <div>
+                  <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] items-center">
+                    <input type="text" data-work-company aria-label="Company name" placeholder="Company name" maxlength="200" class="w-full min-w-0 border border-slate-300 rounded-md px-3 py-2 text-[13px]">
+                    <div class="resume-inline-date-range">
+                      <label for="ed-workStart" class="sr-only">Experience start month and year</label>
+                      <input type="month" data-work-start id="ed-workStart" class="resume-month-input min-w-0 w-36 border border-slate-300 rounded-md px-2 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" title="Experience start month and year" aria-label="Experience start month and year">
+                      <span class="text-slate-400" aria-hidden="true">–</span>
+                      <label for="ed-workEnd" class="sr-only">Experience end month and year</label>
+                      <input type="month" data-work-end id="ed-workEnd" class="resume-month-input min-w-0 w-36 border border-slate-300 rounded-md px-2 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" title="Experience end month and year" aria-label="Experience end month and year">
+                    </div>
+                  </div>
+                    <input type="text" data-work-title id="ed-workexp" aria-label="Work title" placeholder="Work title" class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] mt-2">
+                    <input type="text" data-work-location aria-label="Work location" placeholder="Location" maxlength="200" class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] mt-2">
+                    <div data-work-bullets class="space-y-2 mt-2"></div>
+                    <div class="flex flex-wrap gap-2 mt-2"><button type="button" data-add-bullet class="resume-work-action">Add bullet</button><button type="button" data-work-delete class="resume-work-action">Delete experience</button></div>
+                  </div>
+                  </div>
                 </div>
                 <div>
                   <label class="text-[13px] font-semibold text-slate-700 block mb-1">Education</label>
-                    <input class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" id="ed-education" type="text" value=""/>
+                  <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] items-center">
+                    <input class="w-full min-w-0 border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" id="ed-educationProgram" type="text" placeholder="Program" aria-label="Education program" value=""/>
+                    <div class="resume-inline-date-range">
+                      <label for="ed-educationStart" class="sr-only">Education start month and year</label>
+                      <input type="month" id="ed-educationStart" class="resume-month-input min-w-0 w-36 border border-slate-300 rounded-md px-2 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" title="Education start month and year">
+                      <span class="text-slate-400" aria-hidden="true">–</span>
+                      <label for="ed-educationEnd" class="sr-only">Education end month and year</label>
+                      <input type="month" id="ed-educationEnd" class="resume-month-input min-w-0 w-36 border border-slate-300 rounded-md px-2 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" title="Education end month and year">
+                    </div>
+                  </div>
+                  <input class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400 mt-2" id="ed-educationSchool" type="text" placeholder="School" aria-label="Education school" value=""/>
+                  <input id="ed-education" type="hidden" value=""/>
                 </div>
                 <div>
                   <label class="text-[13px] font-semibold text-slate-700 block mb-1">Soft Skills</label>
@@ -266,7 +300,7 @@
                     </div>
                     <div>
                       <label class="text-[11.5px] font-medium text-slate-500 block mb-1">Role/Contribution <span class="text-slate-400 font-normal">(Max 200 chars)</span></label>
-                      <textarea class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" id="ed-thesisRole" maxlength="200" placeholder="e.g., 'Responsible for developing the ML-based matching engine...'" rows="2"></textarea>
+                      <textarea class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" id="ed-thesisRole" maxlength="200" placeholder="e.g., 'Responsible for developing the ML-based matching engine...'" rows="2"></textarea><div class="resume-date-range grid grid-cols-2 gap-3 mt-2"><div><label for="ed-projectStart" class="text-[12px] font-medium text-slate-600 block mb-1">Project start</label><input type="month" id="ed-projectStart" class="resume-month-input w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" title="Click to choose a month and year"></div><div><label for="ed-projectEnd" class="text-[12px] font-medium text-slate-600 block mb-1">Project end</label><input type="month" id="ed-projectEnd" class="resume-month-input w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" title="Click to choose a month and year"></div></div>
                     </div>
                   </div>
                   <p class="text-[10.5px] text-slate-400 mt-2">Not every course has a thesis — turn this off if it doesn't apply to you.</p>
@@ -296,7 +330,7 @@
                   <textarea class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" id="ed-volunteer" placeholder="e.g., Outreach Volunteer, ACS Community Drive — 2025" rows="2"></textarea>
                 </div>
                 <div>
-                  <label class="text-[13px] font-semibold text-slate-700 block mb-1">Awards &amp; Honors <span class="text-slate-400 font-normal">(one per line)</span></label>
+                  <label class="text-[13px] font-semibold text-slate-700 block mb-1">Honors and Awards <span class="text-slate-400 font-normal">(one per line)</span></label>
                   <textarea class="w-full border border-slate-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400" id="ed-awards" placeholder="e.g., Dean's Lister, 2nd Semester 2025" rows="2"></textarea>
                 </div>
                 <!-- Custom sections (always self-declared) -->
@@ -354,22 +388,28 @@
 <script src="../../assets/js/core/audit.js"></script>
 <script src="../../assets/js/core/placements.js"></script>
 <script src="../../assets/js/core/retention.js"></script>
+<script src="../../assets/js/core/calendar.js?v=20261030-fast-picker"></script>
 <script src="../../assets/js/core/shell.js"></script>
 <script src="../../assets/js/script.js"></script><script src="../../assets/js/core/date.js"></script>
 <script src="../../assets/js/core/jobs.js"></script>
     <script src="../../assets/js/export-logo-transparent.js"></script><script src="../../assets/js/export-logo-layout.js"></script><script src="../../assets/js/core/export-layout.js"></script>
 <script src="../../assets/js/student/runtime.js"></script>
-<script src="../../assets/js/student/attendance.js"></script>
+<script src="../../assets/js/student/attendance.js?v=20261030-records"></script>
 <script src="../../assets/js/student/task-records.js"></script>
-<script src="../../assets/js/student/internship-overview.js"></script>
+<script src="../../assets/js/student/document-viewer.js?v=20261030"></script>
+<script src="../../assets/js/student/internship-overview.js?v=20261030-shared-letters"></script>
 <script src="../../assets/js/student/day-log.js"></script>
 <script src="../../assets/js/student/notifications.js"></script>
 <script src="../../assets/js/student/account.js"></script>
+<script src="../../assets/js/core/postings-api.js?v=20261030-shared-letters"></script>
+<script src="../../assets/js/core/shared-letters.js?v=20261030"></script>
+<script src="../../assets/js/core/notifications.js"></script>
 <script src="../../assets/js/student/common.js"></script>
 <script src="../../assets/js/student/session.js"></script>
 <script src="../../assets/js/student/ui.js"></script>
 <script src="../../assets/js/student/profile.js"></script>
-<script src="../../assets/js/student/export.js"></script>
-<script src="../../assets/js/student/resume.js"></script>
+<script src="../../assets/js/student/export.js?v=20261030-aligned-skills"></script>
+<script src="../../assets/js/student/resume-work.js?v=20261030-aligned-skills"></script>
+<script src="../../assets/js/student/resume.js?v=20261030-skills10"></script>
   </body>
 </html>

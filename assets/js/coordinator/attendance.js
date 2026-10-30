@@ -10,7 +10,7 @@ function attendanceRow(p){
         : risk ? '<span title="' + (expectedHours(p) == null ? '' : 'Behind schedule: ' + hours + ' of ' + expectedHours(p) + ' expected hours') + '" class="inline-flex items-center gap-1 text-[11px] font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">At-Risk</span>'
         : '<span class="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">On Track</span>';
     return '<tr' + (risk ? ' class="bg-red-50/40"' : '') + ' data-intern="' + esc(p.name) + '" data-name="' + esc((p.name + ' ' + (p.studentNo || '')).toLowerCase()) + '" data-company="' + esc(p.company) + '" data-status="' + mode + '">'
-      + '<td class="px-5 py-3"><div class="flex items-center gap-2.5"><div class="w-7 h-7 rounded-full ' + (risk ? 'bg-red-100 text-red-600' : 'bg-sky-100 text-sky-700') + ' text-[11px] font-semibold flex items-center justify-center">' + esc(initials) + '</div>'
+      + '<td class="px-5 py-3"><div class="flex items-center gap-2.5"><div class="w-7 h-7 rounded-full ' + (risk ? 'bg-red-100 text-red-600' : 'bg-sky-100 text-sky-700') + ' text-[11px] font-semibold flex items-center justify-center">' + profilePictureContent(p) + '</div>'
       + '<div><div>' + esc(p.name) + '</div><div class="text-[10.5px] text-slate-400">' + esc(p.studentNo || '') + '</div></div></div></td>'
       + '<td class="px-5 py-3 text-[13px] text-slate-600">' + esc(p.company) + '</td>'
       + '<td class="px-5 py-3"><div class="flex items-center gap-2"><div class="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full ' + (risk ? 'bg-red-500' : 'bg-sky-600') + '" style="width:' + pct + '%"></div></div><span class="text-[11.5px] text-slate-500">' + hours + ' / ' + REQUIRED_HOURS + '</span></div></td>'
@@ -84,7 +84,7 @@ window.ICCore.coordinator.initAttendanceLinks = initCoordinatorAttendanceLinks;
 
 (function () {
   'use strict';
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('ic:coordinator-ready', () => {
     window.ICCore?.coordinator?.initAttendanceExport?.();
     window.ICCore?.coordinator?.initAttendanceLinks?.();
     window.ICCore?.coordinator?.initAttendanceTable?.();

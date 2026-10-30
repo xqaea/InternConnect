@@ -24,7 +24,9 @@ function myClasses(){
     const me = getJSON('ic_session', null) || {};
     const all = getClasses();
     return Object.keys(all)
-        .filter(code => all[code].coordinator === me.email || (code === SEED_CODE && me.classCode === SEED_CODE))
+        .filter(code => me.databaseAccount && me.role === 'coordinator'
+            ? all[code].databaseBatch && all[code].coordinator === me.email
+            : all[code].coordinator === me.email || (code === SEED_CODE && me.classCode === SEED_CODE))
         .map(code => Object.assign({term: 'Initial batch', status: 'active', createdAt: '2026-01-01'}, all[code], {code}))
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
@@ -55,12 +57,36 @@ function currentBatchCode(){
     const me = getJSON('ic_session', null) || {};
     return me.role === 'coordinator' ? activeClassCode() : (me.classCode || activeClassCode());
 }
-// Same people as Overview / Roster / Placements: current students vs completed (alumni) of that batch
+// Account approval (active) and roster membership (intern) use different status names.
+// Both Classes and Roster consume this list so each student is counted once.
+function rosterMembersFor(code){
+    const databaseAccount = !!getJSON('ic_session', {})?.databaseAccount;
+    const placements = placementList(code);
+    const real = studentsOf(code).filter(user => !databaseAccount || user.databaseAccount).map(user => {
+        const placement = placements.find(p => p.email
+            ? p.email.toLowerCase() === user.email.toLowerCase()
+            : p.name === user.name);
+        return {id:user.email, email:user.email, real:true, name:user.name,
+            company:placement?.company || user.company || '—',
+            hours:placement?.hours ?? user.ojtHours ?? user.hours ?? 0,
+            requested:user.status === 'alumni_pending',
+            status:['active','alumni_pending'].includes(user.status) ? 'intern' : (user.status || 'intern'),
+            completedAt:user.completedAt, withdrawnAt:user.withdrawnAt, employment:user.employment || 'seeking'};
+    });
+    if(databaseAccount) return real;
+    const store = getPlacementStore();
+    const placed = placements.filter(p => !p.roster && p.deployedAt && !real.some(user =>
+        p.email ? p.email.toLowerCase() === user.email.toLowerCase() : p.name === user.name))
+        .map(p => Object.assign({id:'p:'+p.name, placement:true, name:p.name, company:p.company, hours:p.hours || 0, status:'intern'}, p.rosterPatch || {}));
+    return real.concat(placed, sampleFor(code).map(member => Object.assign({sample:true}, member, (store[member.name] || {}).rosterPatch || {})))
+        .filter(member => !isAnonymized(member.name));
+}
+// Same membership and status rules as the roster, including approved unplaced students.
 function classCounts(code){
-    const people = placementList(code);
+    const people = rosterMembersFor(code);
     return {
-        interns: people.filter(p => !['Completed', 'Withdrawn'].includes(p.status)).length,
-        alumni: people.filter(p => p.status === 'Completed').length
+        interns: people.filter(p => p.status === 'intern').length,
+        alumni: people.filter(p => p.status === 'alumni').length
     };
 }
 function memberTotal(code){

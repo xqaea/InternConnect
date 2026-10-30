@@ -6,7 +6,15 @@ const JOB_SEED={
 };
 // Partners post jobs (ic_postings); the samples above are starting postings their company can edit or close
 const POSTINGS_KEY = 'ic_postings';
+let sharedPostingCache = null;
+function setSharedPostings(postings){
+    sharedPostingCache = Object.fromEntries(postings.map(post => [post.id, post]));
+    Object.keys(jobDetails).forEach(id => delete jobDetails[id]);
+    Object.entries(sharedPostingCache).filter(([, post]) => post.status !== 'closed').forEach(([id, post]) => {jobDetails[id] = post;});
+}
+function isSharedPosting(id){ return sharedPostingCache !== null && !!sharedPostingCache[id]; }
 function allPostings(){
+    if(sharedPostingCache !== null) return sharedPostingCache;
     const out = {};
     Object.keys(JOB_SEED).forEach(id => { out[id] = Object.assign({id, status: 'open', postedAt: '2026-09-15'}, JOB_SEED[id]); });
     Object.entries(getJSON(POSTINGS_KEY, {})).forEach(([id, p]) => { out[id] = Object.assign({}, out[id] || {}, p, {id}); });
@@ -14,13 +22,26 @@ function allPostings(){
 }
 const jobDetails = Object.fromEntries(Object.entries(allPostings()).filter(([, j]) => j.status !== 'closed' && partnerCompanies().includes(j.company)));
 const JOB_APPS_KEY = 'ic_job_apps';
+let applicationResumeSnapshots = {};
+function cacheDatabaseApplications(applications){
+    const all = getJSON(JOB_APPS_KEY, {});
+    Object.keys(all).forEach(key => { all[key] = all[key].filter(app => !app.databaseApplication); });
+    applicationResumeSnapshots = {};
+    applications.forEach(app => {
+        const key = app.email.toLowerCase();
+        all[key] = (all[key] || []).filter(old => old.job !== app.job).concat(app);
+        applicationResumeSnapshots['application-' + app.id] = app.resume;
+    });
+    localStorage.setItem(JOB_APPS_KEY, JSON.stringify(all));
+}
+function submittedResume(key){ return applicationResumeSnapshots[key] || getJSON('ic_resume', {})[key]; }
 const PROGRAM_COURSE = {'BS Computer Science': 'BSCS', 'BS Hospitality Management': 'BSHM', 'BS Business Administration': 'BSBA'};
 const JM_DEFAULT_SKILLS = ['Communication', 'Python', 'SQL', 'Canva'];
 const jmKey = (me) => ((me || {}).email || (me || {}).name || '').toLowerCase();
 const isInternshipJob = (job) => /^Internship/.test(job.type);
 const JOB_OPEN = ['Pending', 'Applied', 'Endorsed', 'Accepted'];
 function jmSkills(me){
-    const r = getJSON('ic_resume', {})[jmKey(me)];
+    const r = me.applicationResume || getJSON('ic_resume', {})[jmKey(me)];
     const registered = getUsers().some(u => u.role === 'student' && u.email?.toLowerCase() === jmKey(me));
     return (r?.savedAt ? (r.soft || []).concat(r.hard || []) : registered ? [] : JM_DEFAULT_SKILLS).map(x => x.toLowerCase());
 }
@@ -32,7 +53,9 @@ function jobMatch(job, me){
 }
 function myJobApps(me){ return getJSON(JOB_APPS_KEY, {})[jmKey(me)] || []; }
 function jobStatusSelect(key, job, cur){
-    return '<select data-jobstatus="' + esc(key) + '" data-job="' + esc(job) + '" class="border border-slate-300 rounded-md px-2 py-1 text-[11.5px] bg-white focus:outline-none focus:ring-2 focus:ring-sky-400">'
+    const app = (getJSON(JOB_APPS_KEY, {})[key] || []).find(a => a.job === job);
+    const readOnly = app?.databaseApplication && ((getJSON('ic_session', {}) || {}).role !== 'partnercompany' || cur !== 'Pending');
+    return '<select' + (readOnly ? ' disabled' : '') + ' data-jobstatus="' + esc(key) + '" data-job="' + esc(job) + '" class="border border-slate-300 rounded-md px-2 py-1 text-[11.5px] bg-white focus:outline-none focus:ring-2 focus:ring-sky-400">'
       + ['Pending', 'Accepted', 'Not Selected'].map(s => '<option' + (s === cur ? ' selected' : '') + '>' + s + '</option>').join('') + '</select>';
 }
 function jobBadge(st){
@@ -47,6 +70,10 @@ function setJobAppStatus(key, jobId, status, by){
     logAudit('Set the application of ' + (a.name || key) + ' for ' + a.title + ' to ' + status, 'Success');
 }
 function jobAppStatus(a, me){
+    if(a.databaseApplication){
+        const placement=typeof databasePlacementRecords!=='undefined' && databasePlacementRecords.find(p=>p.applicationId===a.id);
+        return placement?placement.status:a.status;
+    }
     if(!a.internship) return a.status && a.status !== 'Submitted' ? a.status : 'Pending';
     const p = placementList().find(x => x.name === me.name || (me.email && x.email === me.email));
     return p && p.company === a.company && p.status !== 'Not placed' ? p.status : 'Cancelled';

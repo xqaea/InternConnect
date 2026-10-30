@@ -94,9 +94,25 @@ function createStudentAttendanceControls({currentUserRecord, isAlumni, session, 
     document.getElementById('confirmAttendancePhotoBtn')?.classList.remove('flex');
   }
 
-  function confirmTimeIn(){
+  async function confirmTimeIn(){
     if(!attendancePhoto) return toast('Capture an attendance photo first.', 'warn');
     if(!attendancePosition) return toast('Your location could not be verified. Allow location access and try again.', 'warn');
+    if(session()?.databaseAccount){
+      const button=document.getElementById('confirmAttendancePhotoBtn');
+      if(button?.disabled) return;
+      if(button) button.disabled=true;
+      try{
+        await window.ICStudentApi.clock({action:attendanceAction,photo:attendancePhoto,
+          lat:attendancePosition.latitude,lng:attendancePosition.longitude,accuracy:attendancePosition.accuracy});
+        cacheDatabaseAttendance((await window.ICStudentApi.attendance()).attendance);
+        stopAttendanceCamera();hide('attendanceCameraModal');
+        window.renderStudentAttendance?.();
+        window.renderTodayClock?.();
+        toast(attendanceAction==='out'?'Time Out saved.':'Time In saved.', 'success');
+      }catch(error){ toast(error.message || 'Could not save attendance. Please refresh before retrying.', 'warn'); }
+      finally{if(button)button.disabled=false;}
+      return;
+    }
     if(attendanceAction === 'out'){
       const me = session() || {};
       const today = liveRecs(me.name)[todayISO()] || {};
@@ -183,11 +199,9 @@ function initStudentAttendanceRecords(me, mine){
     if(body){
         const p = mine();
         const recs = ['Deployed', 'Hours complete', 'Completed'].includes(p.status) ? internAttendance(p) : [];
-        const cal = document.getElementById('attendanceCalendar');
         if(!recs.length){
             body.innerHTML = '<tr><td colspan="7" class="px-5 py-6 text-center text-[12.5px] text-slate-400">' + (['Deployed', 'Hours complete'].includes(p.status) ? 'No clock-ins yet.' : 'Attendance starts after your coordinator confirms your deployment.') + '</td></tr>';
             document.getElementById('attendanceStats').innerHTML = '';
-            if(cal) cal.innerHTML = '';
             return;
         }
         const n = (st) => recs.filter(r => r.status === st).length;
@@ -205,21 +219,7 @@ function initStudentAttendanceRecords(me, mine){
                 + '<td class="px-5 py-3"><span class="text-[10.5px] font-semibold border px-2 py-0.5 rounded-full ' + ATT_BADGE[r.status] + '">' + r.status + (r.review ? ' · ' + r.review : '') + '</span></td></tr>';
         }).join('');
         body.onclick = (e) => { const tr = e.target.closest('tr[data-date]'); if(tr) location.href = '../student/day-log.html?date=' + tr.dataset.date; };
-        if(cal){
-            const last = new Date(recs[0].date + 'T00:00:00'), y = last.getFullYear(), mo = last.getMonth();
-            const head = cal.parentElement.querySelector('h2');
-            if(head) head.textContent = last.toLocaleDateString('en-US', {month: 'long', year: 'numeric'});
-            const byDate = Object.fromEntries(recs.map(r => [r.date, r]));
-            let html = '';
-            for(let i = 0; i < new Date(y, mo, 1).getDay(); i++) html += '<div class="cal-day empty"></div>';
-            for(let d = 1; d <= new Date(y, mo + 1, 0).getDate(); d++){
-                const r = byDate[isoDate(new Date(y, mo, d))], wd = new Date(y, mo, d).getDay();
-                const cls = !r ? (wd === 0 || wd === 6 ? ' weekend' : '') : r.status === 'Absent' ? ' absent' : r.status === 'Holiday' ? ' weekend' : ' present';
-                html += '<div class="cal-day' + cls + (r ? ' cursor-pointer' : '') + '"' + (r ? ' data-date="' + r.date + '"' : '') + ' title="' + (r ? r.status + (r.timeIn ? ' · ' + fmtClock(r.timeIn) + ' – ' + fmtClock(r.timeOut) : r.place ? ' · ' + esc(r.place) : '') : '') + '">' + d + (r ? '<span class="cal-dot"></span>' : '') + '</div>';
-            }
-            cal.innerHTML = html;
-            cal.onclick = (e) => { const c = e.target.closest('[data-date]'); if(c) location.href = '../student/day-log.html?date=' + c.dataset.date; };
-        }
+
     }
     };
     window.renderStudentAttendance();

@@ -1,6 +1,12 @@
 .DS_Store
 Thumbs.db
 node_modules/
+.venv/
+ai-service/models/
+ai-service/onet_data/
 .vscode/
 .idea/
 *.log
+__pycache__/
+*.py[cod]
+.local/

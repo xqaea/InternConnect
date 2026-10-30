@@ -21,7 +21,7 @@ function initStudentDayLog(mine){
     function renderDayExplain(p, r){
         const card = document.querySelector('#tab-daylog .max-w-lg');
         document.getElementById('dayExplain')?.remove();
-        if(!card || !r || !['Flagged', 'Absent', 'Late'].includes(r.status)) return;
+        if(!card || !r || !['Flagged', 'Absent', 'Late', 'Outside schedule'].includes(r.status)) return;
         const box = '<div id="dayExplain" class="mt-4 pt-4 border-t border-slate-100">';
         const DONE = {accepted: ['text-emerald-700', 'Your coordinator accepted this clock-in.'], rejected: ['text-red-600', 'Your coordinator rejected this clock-in. Its hours are not counted.'],
             excused: ['text-emerald-700', 'Your coordinator excused this absence.'], unexcused: ['text-slate-600', 'Your coordinator kept this day as absent.']};
@@ -31,7 +31,7 @@ function initStudentDayLog(mine){
                 + '<div class="text-[12px] font-semibold mt-2 ' + DONE[r.review][0] + '">' + DONE[r.review][1] + '</div></div>');
             return;
         }
-        const why = {Flagged: 'Your clock-in was outside the ' + (r.radius || GEOFENCE_M) + ' m geofence.', Absent: 'There is no clock-in for this scheduled day.', Late: 'You clocked in after your grace period.'}[r.status];
+        const why = {Flagged: 'Your clock-in was outside the ' + (r.radius || GEOFENCE_M) + ' m geofence.', Absent: 'There is no clock-in for this scheduled day.', Late: 'You clocked in after your grace period.', 'Outside schedule':'This clock-in was outside your scheduled work days.'}[r.status];
         const field = 'w-full border border-slate-300 rounded-md px-3 py-2 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-sky-400';
         card.insertAdjacentHTML('beforeend', box
             + '<div class="text-[13px] font-semibold text-slate-800">' + (r.note ? 'Your explanation' : 'Explain this day') + '</div>'
@@ -40,9 +40,20 @@ function initStudentDayLog(mine){
             + '<select id="explainType" class="' + field + ' mb-2">' + ATT_REASONS.map(x => '<option' + (r.note && r.note.type === x ? ' selected' : '') + '>' + esc(x) + '</option>').join('') + '</select>'
             + '<textarea id="explainText" rows="3" maxlength="300" placeholder="e.g. Sent by my supervisor to install the POS at the Molino branch" class="' + field + '">' + (r.note ? esc(r.note.reason) : '') + '</textarea>'
             + '<div class="flex justify-end mt-2"><button id="explainSend" class="text-[12.5px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-3.5 py-2 rounded-md transition">' + (r.note ? 'Update explanation' : 'Send to coordinator') + '</button></div></div>');
-        document.getElementById('explainSend').onclick = () => {
+        document.getElementById('explainSend').onclick = async () => {
             const reason = document.getElementById('explainText').value.trim();
             if(reason.length < 5) return showToast('Write a short explanation first.', 'warn');
+            if(p.databaseRecord || p.databasePlacement){
+                const button=document.getElementById('explainSend');
+                button.disabled=true;
+                try{
+                    await window.ICStudentApi.explainAttendance({date:r.date,type:document.getElementById('explainType').value,reason});
+                    cacheDatabaseAttendance((await window.ICStudentApi.attendance()).attendance);
+                    showToast('Explanation saved for your coordinator.', 'success');
+                    renderDayExplain(p,internAttendance(p).find(x=>x.date===r.date));
+                }catch(error){showToast(error.message || 'Could not save your explanation.', 'warn');button.disabled=false;}
+                return;
+            }
             const all = getJSON(ATT_NOTES_KEY, {});
             all[p.name + '|' + r.date] = {type: document.getElementById('explainType').value, reason, at: todayISO()};
             localStorage.setItem(ATT_NOTES_KEY, JSON.stringify(all));

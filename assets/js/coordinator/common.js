@@ -26,12 +26,13 @@ function updateRequestCounts(){
     document.getElementById('wrDeletionsCount').textContent = '(' + count('wr-deletions') + ')';
 }
 function updateSidebarRequestBadge(){
+    if(getJSON('ic_session',{})?.databaseAccount){window.ICNotifications?.badge();return;}
     const badge = document.getElementById('waitingBadge');
     if(!badge) return;
     const code = activeClassCode();
     const real = getUsers().filter(u => u.classCode === code && u.status === 'pending').length;
     const sampleDone = getJSON(SAMPLE_JOINS_KEY, []);
-    const sample = code === SEED_CODE ? SAMPLE_JOINS.filter(x => !sampleDone.includes(x.sample)).length : 0;
+    const sample = !(getJSON('ic_session', {}) || {}).databaseAccount && code === SEED_CODE ? SAMPLE_JOINS.filter(x => !sampleDone.includes(x.sample)).length : 0;
     const count = real + sample;
     const viewedRequests = !!document.getElementById('tab-requests');
     badge.textContent = String(count);
@@ -61,6 +62,8 @@ function initCoordinatorSidebar(){
         btn.addEventListener('click', async () => {
             if(btn.dataset.tab === 'logout'){
                 if(!await askConfirm('Log out of InternConnect?')) return;
+                if((getJSON('ic_session', {}) || {}).databaseAccount){ try { await window.ICCoordinatorApi.logout(); } catch(e) {} }
+                sessionStorage.removeItem('ic_coordinator_token');
                 localStorage.removeItem('ic_session');   // back to the default theme
                 goTo('login', 'You have been logged out.', 'info');
             } else {
@@ -108,9 +111,9 @@ window.ICCore.coordinator.initSidebar = initCoordinatorSidebar;
 function renderPendingLogsBanner(){
     const countEl = document.getElementById('pendingLogsCount'), banner = document.getElementById('pendingLogsBanner');
     if(!countEl || !banner) return;
-    const saved = getJSON(SUB_KEY, {}), statuses = getJSON(SUB_STATUS_KEY, {});
+    const saved = savedTaskSubmissions(), statuses = getJSON(SUB_STATUS_KEY, {});
     const count = Object.entries(saved).reduce((total, [taskId, submissions]) => total + (Array.isArray(submissions) ? submissions.filter(sub => {
-        const status = statuses[taskId + '|' + sub.name]?.status || sub.status;
+        const status = sub.databaseReport?sub.status:statuses[taskId + '|' + sub.name]?.status || sub.status;
         return status === 'Pending Review';
     }).length : 0), 0);
     countEl.textContent = count;
@@ -120,10 +123,11 @@ renderPendingLogsBanner();
 
 // Coordinator notifications: show real student task submissions, not deadline or sample-log reminders.
 function renderCoordinatorSubmissionNotifications(){
+    if(getJSON('ic_session',{})?.databaseAccount){window.ICNotifications.render();return;}
     if(isStudentPortal) return;
     const drop = document.querySelector('#notifDropdown .divide-y'), button = document.getElementById('notifBtn');
     if(!drop || !button) return;
-    const saved = getJSON(SUB_KEY, {}), items = Object.entries(saved).flatMap(([taskId, submissions]) =>
+    const saved = savedTaskSubmissions(), items = Object.entries(saved).flatMap(([taskId, submissions]) =>
         (Array.isArray(submissions) ? submissions : []).map(sub => ({taskId, sub}))
     ).sort((a, b) => String(b.sub.date || '').localeCompare(String(a.sub.date || ''))).slice(0, 8);
     if(!items.length){
@@ -150,9 +154,21 @@ window.ICCore.coordinator.renderSubmissionNotifications = renderCoordinatorSubmi
   'use strict';
   window.ICCore = window.ICCore || {};
   window.ICCore.coordinator = window.ICCore.coordinator || {};
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
+    if((getJSON('ic_session', {}) || {}).databaseAccount){
+      try{
+        if(!sessionStorage.getItem('ic_coordinator_token')) throw {status: 401};
+        await window.syncCoordinatorState();
+      }catch(error){
+        if(error.status === 401 || error.status === 403){ localStorage.removeItem('ic_session'); sessionStorage.removeItem('ic_coordinator_token'); }
+        goTo('login', error.message || 'Please sign in again to verify your coordinator account.', 'warn');
+        return;
+      }
+    }
     window.ICCore.coordinator.updateRequestBadge?.();
     window.ICCore.coordinator.initSidebar?.();
     window.ICCore.coordinator.renderSubmissionNotifications?.();
+    document.dispatchEvent(new Event('ic:coordinator-ready'));
+    document.documentElement.classList.add('app-ready');
   }, { once: true });
 })();

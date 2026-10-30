@@ -1,5 +1,6 @@
     // ---- Notifications and Recent Activity ----
 function renderStudentRecordNotifications(me, mine, myTasks, mySub){
+        if(me.databaseAccount){window.ICNotifications.render();return;}
         const p = mine(), items = [], st = getJSON(SUB_STATUS_KEY, {});
         (p.history || []).slice(-4).forEach(x => items.push({date: x.date, icon: 'fa-route', tone: 'bg-sky-50 text-sky-600', text: 'Placement: <strong>' + esc(x.status) + '</strong>' + (x.note ? ' · ' + esc(x.note) : '')}));
         allTaskIds().forEach(id => {

@@ -1,4 +1,4 @@
-/* ---------- Export the roster on screen (Excel or PDF) ---------- */
+/* ---------- Export the roster on screen (PDF) ---------- */
 function attendanceExportData(){
     const shown = new Set([...document.querySelectorAll('#attendanceTbody tr:not(.hidden)')].map(r => r.dataset.intern));
     const people = placementList().filter(p => shown.has(p.name)).sort((a, b) => a.name.localeCompare(b.name));
@@ -13,22 +13,11 @@ function attendanceExportData(){
         ['Filters', [document.getElementById('studentSearch').value, document.getElementById('companyFilter').value, document.getElementById('statusFilter').value].filter(Boolean).join(', ') || 'None']];
     return {head, rows, details};
 }
-const attendanceFile = (ext) => 'Attendance_Progress_' + fileSlug(activeClassCode() || 'batch') + '_' + todayISO() + '.' + ext;
-function exportAttendanceXlsx(){
-    if(typeof XLSX === 'undefined'){ showToast('The Excel library could not load (are you offline?). Use the PDF option instead.', 'warn'); return false; }
-    const d = attendanceExportData(), wb = XLSX.utils.book_new();
-    const progress = XLSX.utils.aoa_to_sheet([d.head].concat(d.rows.length ? d.rows : [['No interns match.']]));
-    progress['!cols'] = [26, 14, 28, 12, 15, 15, 13, 15, 15, 16].map(w => ({wch: w}));
-    const summary = XLSX.utils.aoa_to_sheet(d.details); summary['!cols'] = [{wch: 24}, {wch: 40}];
-    XLSX.utils.book_append_sheet(wb, progress, 'Progress');
-    XLSX.utils.book_append_sheet(wb, summary, 'Summary');
-    XLSX.writeFile(wb, attendanceFile('xlsx'));
-    return true;
-}
+const attendanceFile = () => 'Attendance_Progress_' + fileSlug(activeClassCode() || 'batch') + '_' + todayISO() + '.pdf';
 function exportAttendancePdf(){
     const lib = window.jspdf && window.jspdf.jsPDF;
     const doc = lib && new lib({unit: 'pt', format: 'a4', orientation: 'landscape'});
-    if(!doc || typeof doc.autoTable !== 'function'){ showToast('The PDF library could not load (are you offline?). Use the Excel option instead.', 'warn'); return false; }
+    if(!doc || typeof doc.autoTable !== 'function'){ showToast('The PDF library could not load (are you offline?). Please try again later.', 'warn'); return false; }
     const d = attendanceExportData(), det = Object.fromEntries(d.details);
     const css = getComputedStyle(document.documentElement);
     const rgb = (n, fb) => { const h = css.getPropertyValue(n).trim().replace('#', ''); return /^[0-9a-f]{6}$/i.test(h) ? [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16)) : fb; };
@@ -47,22 +36,15 @@ function exportAttendancePdf(){
     const pages = doc.getNumberOfPages();
     for(let i = 1; i <= pages; i++){ doc.setPage(i); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(120, 130, 145);
         doc.text('InternConnect  |  Attendance & progress  |  ' + det['Generated on'], M, H - 22); doc.text('Page ' + i + ' of ' + pages, W - M, H - 22, {align: 'right'}); }
-    doc.save(attendanceFile('pdf'));
+    doc.save(attendanceFile());
     return true;
 }
 function initCoordinatorAttendanceExport(){
     if(!document.getElementById('exportAttBtn')) return;
-    const btn = document.getElementById('exportAttBtn'), menu = document.getElementById('exportAttMenu');
-    const setMenu = (open) => { menu.classList.toggle('hidden', !open); btn.setAttribute('aria-expanded', open ? 'true' : 'false'); };
-    btn.addEventListener('click', (e) => { e.stopPropagation(); setMenu(menu.classList.contains('hidden')); });
-    document.addEventListener('click', (e) => { if(!menu.contains(e.target)) setMenu(false); });
-    document.addEventListener('keydown', (e) => { if(e.key === 'Escape') setMenu(false); });
-    menu.addEventListener('click', (e) => {
-        const item = e.target.closest('[data-export]');
-        if(!item) return;
-        setMenu(false);
-        const label = item.dataset.export === 'xlsx' ? 'Excel' : 'PDF';
-        try { if(!(item.dataset.export === 'xlsx' ? exportAttendanceXlsx() : exportAttendancePdf())) return; }
+    const btn = document.getElementById('exportAttBtn');
+    btn.addEventListener('click', () => {
+        const label = 'PDF';
+        try { if(!exportAttendancePdf()) return; }
         catch(err){ console.error(err); showToast('Could not create the file. Please try again.', 'warn'); return; }
         logAudit('Exported the attendance and progress list (' + label + ')');
         showToast('Attendance and progress downloaded as ' + label + '.', 'success');

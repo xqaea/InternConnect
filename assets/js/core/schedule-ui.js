@@ -18,7 +18,7 @@ function openScheduleModal(p, title, onSave){
           + '<button data-sched="save" class="text-[12.5px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-4 py-2.5 rounded-md transition">Save</button></div></div></div>');
         m = document.getElementById('scheduleModal');
         m.addEventListener('change', (e) => { if(e.target.id === 'schedOwnSite') document.getElementById('schedSiteBox').classList.toggle('hidden', !e.target.checked); });
-        m.addEventListener('click', (e) => {
+        m.addEventListener('click', async (e) => {
             const b = e.target.closest('[data-sched]');
             if(!b) return;
             if(b.dataset.sched === 'close'){ closeModal(m); return; }
@@ -33,8 +33,12 @@ function openScheduleModal(p, title, onSave){
             }
             if(!sched.days.length){ showToast('Pick at least one work day.', 'warn'); return; }
             if(!sched.timeIn || !sched.timeOut || clockMins(sched.timeOut) <= clockMins(sched.timeIn)){ showToast('Time out must be later than time in.', 'warn'); return; }
-            closeModal(m);
-            m._onSave(sched);
+            if(b.disabled) return;
+            b.disabled=true;
+            try{
+                if(await m._onSave(sched)!==false) closeModal(m);
+            }catch(error){ showToast(error.message || 'Could not save the schedule. Please try again.', 'warn'); }
+            finally{ b.disabled=false; }
         });
     }
     const sc = scheduleOf(p);

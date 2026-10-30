@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>InternConnect - Sign In</title>
-    <script src="../../assets/js/theme.js"></script>
+    <script src="../../assets/js/theme.js?v=20261030-partner-theme"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../../assets/css/styles.css">
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=20261030-structured-work">
 </head>
 
 <!-- Color Scheme -->
@@ -37,9 +37,22 @@
 
         <!-- Login Form -->
         <div class="flex-1 flex items-center justify-center p-6 lg:p-10 bg-slate-50">
-            <div class="w-full max-w-sm">
+            <div id="loginForm" class="w-full max-w-sm" style="visibility:hidden">
+                <div id="loginLoading" class="login-skeleton" role="status" aria-label="Signing in, please wait" hidden>
+                    <div class="login-skeleton-title" aria-hidden="true"></div>
+                    <div class="login-skeleton-caption" aria-hidden="true"></div>
+                    <div class="login-skeleton-pills" aria-hidden="true"></div>
+                    <div class="login-skeleton-label" aria-hidden="true"></div>
+                    <div class="login-skeleton-field" aria-hidden="true"></div>
+                    <div class="login-skeleton-label" aria-hidden="true"></div>
+                    <div class="login-skeleton-field" aria-hidden="true"></div>
+                    <div class="login-skeleton-caption" aria-hidden="true"></div>
+                    <div class="login-skeleton-field login-skeleton-button" aria-hidden="true"></div>
+                    <div class="login-skeleton-field" aria-hidden="true"></div>
+                </div>
+                <div id="loginContent">
                 <div class="flex items-center gap-2 mb-6 lg:hidden">
-                    <div class="text-sky-600">
+                    <div class="text-slate-900">
                         <i class="fa-solid fa-link text-xs"></i>
                     </div>
                     <span class="font-bold text-slate-900">InternConnect</span>
@@ -50,7 +63,7 @@
 
                 <!-- Role Switcher -->
                 <div id="roleSwitcher" class="grid grid-cols-3 gap-1.5 bg-slate-200/70 rounded-lg p-1 mb-5">
-                    <button data-role="student" class="role-btn active text-[12px] font-semibold py-1.5 rounded-md transition">Student</button>
+                    <button data-role="student" class="role-btn text-[12px] font-semibold py-1.5 rounded-md transition">Student</button>
                     <button data-role="coordinator" class="role-btn text-[12px] font-semibold py-1.5 rounded-md transition">Coordinator</button>
                     <button data-role="partnercompany" class="role-btn text-[12px] font-semibold py-1.5 rounded-md transition">Partner Company</button>
                 </div>
@@ -64,7 +77,7 @@
                 <!-- Email and Password -->
                 <div class="space-y-3.5">
                     <div>
-                        <label class="text-[12px] font-medium text-slate-600 block mb-1">School email</label>
+                        <label id="loginEmailLabel" class="text-[12px] font-medium text-slate-600 block mb-1">School email</label>
                         <input id="loginEmail" type="text" placeholder="juandelacruz@sjxc.edu.ph" class="w-full border border-slate-300 rounded-md px-3 py-2.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-sky-400">
                     </div>
                     <div>
@@ -80,10 +93,12 @@
                     <button id="loginSubmitBtn" class="w-full bg-slate-900 hover:bg-slate-800 text-white text-[13.5px] font-semibold py-2.5 rounded-md transition">Continue as <span id="roleLabel">Student</span></button>
                     <button id="goToRegisterLink" type="button" class="w-full bg-white hover:bg-slate-50 text-slate-900 text-[13.5px] font-semibold py-2.5 rounded-md transition border border-slate-300">Create an Account</button>
                 </div>
+                </div>
             </div>
         </div>
     </div>
 </section>
+<script src="../../assets/js/auth/login-role.js"></script>
 
 <!-- Toast Container -->
 <div id="toastContainer"></div>
@@ -101,10 +116,15 @@
 <script src="../../assets/js/core/audit.js"></script>
 <script src="../../assets/js/core/placements.js"></script>
 <script src="../../assets/js/core/retention.js"></script>
+<script src="../../assets/js/core/calendar.js?v=20261030-fast-picker"></script>
 <script src="../../assets/js/core/shell.js"></script>
 <script src="../../assets/js/script.js"></script><script src="../../assets/js/core/date.js"></script>
+<script src="../../assets/js/core/postings-api.js?v=20261030-shared-letters"></script>
+<script src="../../assets/js/core/shared-letters.js?v=20261030"></script>
 <script src="../../assets/js/core/jobs.js"></script>
 <script src="../../assets/js/auth/common.js"></script>
+<script src="../../assets/js/auth/password-ui.js"></script>
+<script src="../../assets/js/auth/login-lockout.js"></script>
 <script src="../../assets/js/auth/sign-in.js"></script>
 </body>
 </html>

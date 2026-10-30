@@ -37,11 +37,13 @@ window.ICCore.coordinator.shared = { goTo, openModal, closeModal, askConfirm, sh
 /* ============ Student / Alumni Portal (student pages only) ============ */
 /* Uses the same localStorage data as the coordinator side: ic_users, ic_classes, ic_session, ic_alumni_requests. */
 /* ============ Student side: placement, classwork, files, attendance (uses the coordinator data) ============ */
-if(document.body.dataset.role === 'student') document.addEventListener('DOMContentLoaded', () => {
+if(document.body.dataset.role === 'student') document.addEventListener('ic:student-ready', () => {
     initStudentRecords();
 });
 
 // Reveal the page after the shared initialization callbacks.
 document.addEventListener('DOMContentLoaded', () => {
+    if(document.body.dataset.role === 'student') return;
+    if(sidebar && currentRole() === 'coordinator') return;
     document.documentElement.classList.add('app-ready');
 }, {once: true});

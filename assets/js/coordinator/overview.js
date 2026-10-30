@@ -76,7 +76,7 @@ window.ICCore.coordinator.initOverview = initCoordinatorOverview;
 
 (function () {
   'use strict';
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('ic:coordinator-ready', () => {
     window.ICCore?.coordinator?.initSummaryExport?.();
     window.ICCore?.coordinator?.initOverview?.();
   }, { once: true });

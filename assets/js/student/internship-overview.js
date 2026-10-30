@@ -14,6 +14,13 @@ function initStudentInternshipOverview(me, mine, myTasks, mySub, renderNotifs){
 
     // ---- Overview: my internship, my files, data deletion (alumni) ----
     const ov = document.getElementById('tab-overview');
+    let signedLetters=[],lettersState=me.databaseAccount?'loading':'prototype';
+    async function loadLetters(){
+        lettersState='loading';renderStudentOverview();
+        try{signedLetters=(await window.ICStudentApi.placementDocuments()).documents;lettersState='ready';}
+        catch(error){lettersState='error';}
+        renderStudentOverview();
+    }
     function renderStudentOverview(){
         const p = mine();
         document.getElementById('myInternship')?.remove();
@@ -23,9 +30,9 @@ function initStudentInternshipOverview(me, mine, myTasks, mySub, renderNotifs){
             + (i < at || p.status === 'Completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : i === at ? 'bg-sky-600 text-white border-sky-600' : 'text-slate-400 border-slate-200') + '">' + st + '</span>').join('') + '</div>';
         let body = progress + '<p class="text-[12.5px] text-slate-600">' + (p.company ? '<strong>' + esc(p.company) + '</strong>' + (p.position ? ' · ' + esc(p.position) : '') + ' · ' : '') + NEXT[p.status] + '</p>';
         if(p.status === 'Not placed' && !partnerNames().length) body += '<p class="text-[12px] text-slate-500 mt-3">No partner companies are linked to your batch yet. Your coordinator has to approve one first.</p>';
-        else if(p.status === 'Not placed') body += '<div class="grid sm:grid-cols-[1fr_1fr_150px_auto] gap-2 mt-3">'
+        else if(p.status === 'Not placed') body += '<div class="grid sm:grid-cols-[1fr_1fr_auto] gap-2 mt-3">'
             + '<select id="stApplyCompany" class="' + field + '">' + partnerNames().map(c => '<option>' + esc(c) + '</option>').join('') + '</select>'
-            + '<input id="stApplyPosition" placeholder="Position (e.g. Web Developer Intern)" class="' + field + '"><input id="stApplyDate" type="date" value="' + todayISO() + '" class="' + field + '">'
+            + '<input id="stApplyPosition" placeholder="Position (e.g. Web Developer Intern)" class="' + field + '">'
             + '<button id="stApplyBtn" class="text-[12.5px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-4 py-2 rounded-md">Record application</button></div>'
             + '<p class="text-[11px] text-slate-400 mt-1.5">One active application at a time. Your coordinator can also record it for you.</p>';
         if(p.status === 'Applied' && p.source === 'student') body += '<button id="stCancelApply" class="mt-3 text-[12px] font-semibold text-red-600 hover:text-red-700">Cancel application</button>';
@@ -34,8 +41,12 @@ function initStudentInternshipOverview(me, mine, myTasks, mySub, renderNotifs){
             body += '<div class="mt-3 grid sm:grid-cols-2 gap-2 text-[12.5px]"><div class="rounded-lg border border-slate-200 px-3 py-2"><div class="text-[10.5px] text-slate-500">Hours rendered</div><div class="font-bold text-slate-900">' + (p.hours || 0) + ' / ' + REQUIRED_HOURS + '</div></div>'
                 + '<div class="rounded-lg border border-slate-200 px-3 py-2"><div class="text-[10.5px] text-slate-500">Schedule (' + sc.mode + ')</div><div class="font-semibold text-slate-800">' + scheduleText(sc) + '</div><div class="text-[10.5px] text-slate-400">Late after ' + fmtClock(clockMins(sc.timeIn) + sc.grace) + '</div></div></div>';
         }
-        const docs = internDocs(p.company, p.name);
-        const files = !p.company ? '<p class="text-[12.5px] text-slate-400">Your folder is created once you apply to a partner company.</p>'
+        const docs = me.databaseAccount?[]:internDocs(p.company, p.name);
+        const files = me.databaseAccount ? (lettersState==='loading'?'<p role="status" class="text-[12.5px] text-slate-400">Loading your letters…</p>'
+            :lettersState==='error'?'<p class="text-[12.5px] text-slate-500">Your letters could not be loaded.</p><button type="button" data-retry-letters class="text-[12px] text-sky-700 mt-2">Try again</button>'
+            :signedLetters.length?'<div class="divide-y divide-slate-100">'+signedLetters.map(file=>'<button type="button" data-st-letter="'+esc(file.kind)+'" data-st-letter-id="'+esc(file.id || '')+'" class="w-full text-left flex items-center justify-between gap-3 py-2"><span><span class="block text-[12.5px] text-slate-800">'+(file.kind==='endorsement'?'Endorsement letter':'Acceptance letter')+'</span><span class="text-[10.5px] text-slate-400">'+esc(file.name)+'</span></span><span class="text-[12px] text-sky-700">View</span></button>').join('')+'</div>'
+            :'<p class="text-[12.5px] text-slate-400">Your letters will appear here when uploaded to your folder in the company vault.</p>')
+            : !p.company ? '<p class="text-[12.5px] text-slate-400">Your folder is created once you apply to a partner company.</p>'
             : docs.length ? '<div class="divide-y divide-slate-100">' + docs.map(f => '<div data-st-file="' + esc(f.id) + '" role="button" tabindex="0" class="flex items-center justify-between gap-3 py-2 cursor-pointer"><div class="flex items-center gap-2.5"><i class="fa-solid fa-file-pdf text-red-400"></i><div><div class="text-[12.5px] text-slate-800">' + esc(f.name) + '</div><div class="text-[10.5px] text-slate-400">' + esc(f.type) + ' · ' + formatDate(f.uploadedAt) + (f.version > 1 ? ' · v' + f.version : '') + '</div></div></div><span class="text-[10.5px] text-slate-400">view only</span></div>').join('') + '</div>'
             : '<p class="text-[12.5px] text-slate-400">No signed scans yet.</p>';
         let deletion = '';
@@ -57,12 +68,23 @@ function initStudentInternshipOverview(me, mine, myTasks, mySub, renderNotifs){
     }
     if(ov){
         renderStudentOverview();
+        if(me.databaseAccount)loadLetters();
         ov.addEventListener('click', async (e) => {
             const p = mine();
+            if(e.target.closest('[data-retry-letters]')){loadLetters();return;}
+            const letterButton=e.target.closest('[data-st-letter]');
+            if(letterButton){
+                if(letterButton.disabled)return;
+                letterButton.disabled=true;
+                try{const result=letterButton.dataset.stLetterId?await window.ICVaultApi.read(letterButton.dataset.stLetterId):await window.ICStudentApi.placementDocument(letterButton.dataset.stLetter);window.viewStudentDocument(result.document);}
+                catch(error){showToast(error.message || 'This letter could not be opened.','warn');}
+                finally{letterButton.disabled=false;}
+                return;
+            }
             const documentRow = e.target.closest('[data-st-file]');
-            if(documentRow){ downloadPrototypeFile(internDocs(p.company, p.name).find(f => f.id === documentRow.dataset.stFile)); return; }
+            if(documentRow){try{window.viewStudentDocument(internDocs(p.company,p.name).find(f=>f.id===documentRow.dataset.stFile));}catch(error){showToast(error.message,'warn');}return;}
             if(e.target.closest('#stApplyBtn')){
-                const company = document.getElementById('stApplyCompany').value, position = document.getElementById('stApplyPosition').value.trim(), date = document.getElementById('stApplyDate').value || todayISO();
+                const company = document.getElementById('stApplyCompany').value, position = document.getElementById('stApplyPosition').value.trim(), date = todayISO();
                 savePlacement(p.name, {status: 'Applied', company, position, source: 'student', email: me.email, history: (p.history || []).concat({status: 'Applied', date, note: company + (position ? ' · ' + position : '') + ' · by student'})});
                 showToast('Application to ' + esc(company) + ' recorded. Your coordinator will review it.', 'success');
             }

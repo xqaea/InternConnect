@@ -1,55 +1,56 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-portal="student">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=20261030-structured-work">
+    <script src="../../assets/js/theme.js?v=20261030-partner-theme"></script>
     <title>Classwork & Tasks — InternConnect</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../../assets/css/styles.css">
-    <script src="../../assets/js/theme.js"></script>
   </head>
   <body class="bg-slate-100 text-slate-800" data-role="student" data-page="classwork">
     <div class="flex min-h-screen">
       <button id="mobileToggle" class="lg:hidden fixed top-3 left-3 z-50 bg-slate-900 text-white w-9 h-9 rounded-md flex items-center justify-center shadow-lg"><i class="fa-solid fa-bars"></i></button>
-      <aside class="fixed lg:sticky top-0 left-0 h-screen w-64 bg-slate-900 text-slate-300 flex flex-col z-40 -translate-x-full lg:translate-x-0 transition-transform duration-200" id="sidebar">
-        <div class="flex items-center gap-2.5 px-5 py-5 border-b border-white/10">
-          <div class="w-9 h-9 flex items-center justify-center text-sky-600 flex-shrink-0">
+      <aside class="fixed lg:sticky top-0 left-0 h-screen w-64 flex-shrink-0 bg-slate-900 text-slate-300 flex flex-col z-40 -translate-x-full lg:translate-x-0 transition-transform duration-200" id="sidebar">
+        <div class="brand-row flex items-center gap-2.5 px-5 py-5 border-b border-white/10">
+          <a href="overview.html" class="w-9 h-9 flex items-center justify-center text-sky-600 flex-shrink-0" aria-label="InternConnect overview">
             <i class="fa-solid fa-link text-sm text-white"></i>
+          </a>
+          <div class="sidebar-text min-w-0 flex-1">
+            <a href="overview.html" class="block text-white font-bold text-[15px] leading-tight truncate" aria-label="InternConnect overview">InternConnect</a>
+            <div class="text-[10.5px] text-slate-400 tracking-wide truncate">Student &amp; Alumni Portal</div>
           </div>
-          <div class="min-w-0">
-            <div class="text-white font-bold text-[15px] leading-tight">InternConnect</div>
-            <div class="text-[10.5px] text-slate-400 tracking-wide">Student &amp; Alumni Portal</div>
-          </div>
+          <button id="collapseBtn" type="button" class="hidden lg:flex ml-auto w-8 h-8 rounded-md items-center justify-center text-slate-300 hover:bg-white/10 hover:text-white transition flex-shrink-0" aria-label="Collapse sidebar" title="Collapse sidebar"><i class="fa-solid fa-angles-left"></i></button>
           <button class="lg:hidden ml-auto w-8 h-8 rounded-md flex items-center justify-center text-slate-300 hover:bg-white/10 hover:text-white transition flex-shrink-0" id="mobileCloseBtn">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
         <nav class="flex-1 px-2 pt-4 space-y-0.5">
           <a class="nav-link active w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" data-tab="overview" href="../student/overview.html">
-            <i class="fa-solid fa-gauge-high w-4 text-center"></i> Overview
+            <i class="fa-solid fa-gauge-high w-4 text-center"></i> <span class="sidebar-text">Overview</span>
           </a>
           <a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition student-only-nav" data-tab="attendance" href="../student/attendance.html">
-            <i class="fa-solid fa-calendar-check w-4 text-center"></i> Attendance
+            <i class="fa-solid fa-calendar-check w-4 text-center"></i> <span class="sidebar-text">Attendance</span>
           </a>
           <a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition student-only-nav" data-tab="classwork" href="../student/classwork.html">
-            <i class="fa-solid fa-list-check w-4 text-center"></i> Classwork &amp; Tasks
+            <i class="fa-solid fa-list-check w-4 text-center"></i> <span class="sidebar-text">Classwork &amp; Tasks</span>
           </a>
           <a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" data-tab="resume" href="../student/resume-builder.html">
-            <i class="fa-solid fa-file-shield w-4 text-center"></i> Resume Builder
+            <i class="fa-solid fa-file-shield w-4 text-center"></i> <span class="sidebar-text">Resume Builder</span>
           </a>
           <a class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" data-tab="jobs" href="../student/job-matching.html">
-            <i class="fa-solid fa-magnifying-glass-dollar w-4 text-center"></i> <span id="jobsNavLabel">Internship Matching</span>
+            <i class="fa-solid fa-magnifying-glass-dollar w-4 text-center"></i> <span class="sidebar-text" id="jobsNavLabel">Internship Matching</span>
           </a>
-          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold px-4 pt-4 pb-1">Session</div>
+          <div class="group-label text-[10px] uppercase tracking-wider text-slate-500 font-semibold px-4 pt-4 pb-1">Session</div>
           <button class="nav-link w-full flex items-center gap-3 px-4 py-2.5 rounded-r-md text-sm font-medium hover:bg-white/5 hover:text-white transition" id="logoutBtn" title="Logout">
-            <i class="fa-solid fa-right-to-bracket w-4 text-center"></i> Logout
+            <i class="fa-solid fa-right-to-bracket w-4 text-center"></i> <span class="sidebar-text">Logout</span>
           </button>
         </nav>
-        <div class="px-5 py-4 border-t border-white/10 flex items-center gap-3">
+        <div class="student-sidebar-profile px-5 py-4 border-t border-white/10 flex items-center gap-3">
           <div data-user="avatar" class="overflow-hidden w-8 h-8 rounded-full bg-sky-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0"></div>
-          <div class="min-w-0 flex-1">
+          <div class="sidebar-text min-w-0 flex-1">
             <div data-user="name" class="text-white text-[12.5px] font-medium truncate"></div>
             <div data-user="program" class="text-[10.5px] text-slate-400 truncate"></div>
           </div>
@@ -72,7 +73,7 @@
             <div class="relative">
               <button class="relative w-9 h-9 rounded-md flex items-center justify-center text-slate-500 hover:bg-slate-100 transition" id="notifBtn">
                 <i class="fa-regular fa-bell"></i>
-                <span class="notification-dot absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+                <span class="notification-dot hidden absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
               </button>
               <div class="hidden absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-xl shadow-lg z-30 overflow-hidden" id="notifDropdown">
                 <div class="px-4 py-3 border-b border-slate-100 font-semibold text-slate-900 text-sm">Notifications</div>
@@ -150,16 +151,21 @@
 <script src="../../assets/js/core/audit.js"></script>
 <script src="../../assets/js/core/placements.js"></script>
 <script src="../../assets/js/core/retention.js"></script>
+<script src="../../assets/js/core/calendar.js?v=20261030-fast-picker"></script>
 <script src="../../assets/js/core/shell.js"></script>
 <script src="../../assets/js/script.js"></script><script src="../../assets/js/core/date.js"></script>
 <script src="../../assets/js/core/jobs.js"></script>
 <script src="../../assets/js/student/runtime.js"></script>
-<script src="../../assets/js/student/attendance.js"></script>
+<script src="../../assets/js/student/attendance.js?v=20261030-records"></script>
 <script src="../../assets/js/student/task-records.js"></script>
-<script src="../../assets/js/student/internship-overview.js"></script>
+<script src="../../assets/js/student/document-viewer.js?v=20261030"></script>
+<script src="../../assets/js/student/internship-overview.js?v=20261030-shared-letters"></script>
 <script src="../../assets/js/student/day-log.js"></script>
 <script src="../../assets/js/student/notifications.js"></script>
 <script src="../../assets/js/student/account.js"></script>
+<script src="../../assets/js/core/postings-api.js?v=20261030-shared-letters"></script>
+<script src="../../assets/js/core/shared-letters.js?v=20261030"></script>
+<script src="../../assets/js/core/notifications.js"></script>
 <script src="../../assets/js/student/common.js"></script>
 <script src="../../assets/js/student/session.js"></script>
 <script src="../../assets/js/student/ui.js"></script>

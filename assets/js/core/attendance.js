@@ -36,7 +36,11 @@ const internAtRisk = (p) => {
 
 // Real clock-ins from the student portal: ic_live_attendance {name: {date: {in, out, hours, photoIn, lat, lng, dist}}}
 const LIVE_KEY = 'ic_live_attendance';
-const liveRecs = (name) => getJSON(LIVE_KEY, {})[name] || {};
+let databaseAttendanceRecords=[];
+function cacheDatabaseAttendance(records){ databaseAttendanceRecords=records; }
+const liveRecs = (name) => (getJSON('ic_session',{}) || {}).databaseAccount
+    ? Object.fromEntries(databaseAttendanceRecords.filter(row=>row.name===name).map(row=>[row.date,{...row,in:row.timeIn,out:row.timeOut}]))
+    : getJSON(LIVE_KEY, {})[name] || {};
 const liveHours = (name) => Object.values(liveRecs(name)).reduce((t, r) => t + (r.hours || 0), 0);
 
 
@@ -92,6 +96,7 @@ const fmtClock = (mins) => { if(mins == null) return '—'; const h = Math.floor
 
 // Newest first. Weekdays only, going back from the last working day until the rendered hours are used up.
 function internAttendance(p){
+    if(p.databaseRecord || p.databasePlacement) return databaseAttendanceRecords.filter(row=>row.email.toLowerCase()===(p.email || '').toLowerCase());
     const live = liveRecs(p.name);
     let left = (p.rawHours != null ? p.rawHours : (p.hours || 0)) - Object.values(live).reduce((t, r) => t + (r.hours || 0), 0);
     if((left <= 0 && !Object.keys(live).length) || !p.company) return [];
