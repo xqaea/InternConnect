@@ -12,7 +12,13 @@ const PH_HOLIDAYS_2026 = [
     ['2026-12-08', 'Feast of the Immaculate Conception', 'Special non-working day'], ['2026-12-24', 'Christmas Eve', 'Special non-working day'],
     ['2026-12-25', 'Christmas Day', 'Regular holiday'], ['2026-12-30', 'Rizal Day', 'Regular holiday'], ['2026-12-31', 'Last Day of the Year', 'Special non-working day']
 ];
+// Database coordinators: each batch's holidays come from the account API into this cache (see coordinator/database.js).
+// They are not seeded with the sample dates and never touch localStorage.
+let databaseHolidayCache = {};
+const isDatabaseCoordinator = () => { const me = getJSON('ic_session', {}) || {}; return !!(me.databaseAccount && me.role === 'coordinator'); };
+function cacheDatabaseHolidays(code, list){ databaseHolidayCache[code] = list.map(h => ({date: h.date, name: h.name, type: h.type})); }
 function getHolidays(){
+    if(isDatabaseCoordinator()) return (databaseHolidayCache[activeClassCode() || 'default'] || []).slice().sort((a, b) => a.date.localeCompare(b.date));
     const all = getJSON(HOLIDAY_KEY, {}), code = activeClassCode() || 'default';
     if(!all[code]){
         all[code] = PH_HOLIDAYS_2026.filter(h => ['2026-06-12', '2026-08-21', '2026-08-31'].includes(h[0])).map(([date, name, type]) => ({date, name, type}));

@@ -47,18 +47,18 @@ function currentRole(){
 }
 
 // Turn a page key into a file name (register1/2/3 depend on the role)
-function pageFor(key){
+function pageFor(key, role = currentRole()){
     const m = key.match(/^register([123])$/);
-    if(m) return registerPages[currentRole()][m[1] - 1];
-    if(currentRole() === 'student' && studentPages[key]) return studentPages[key];
+    if(m) return registerPages[role][m[1] - 1];
+    if(role === 'student' && studentPages[key]) return studentPages[key];
     return pages[key];
 }
 
 // Go To Another Screen (each screen is now its own .html file)
 // The toast is saved first so it can show up on the next page
-function goTo(page, toastMessage, toastType){
+function goTo(page, toastMessage, toastType, role){
     if(toastMessage){
         sessionStorage.setItem('pendingToast', JSON.stringify({message: toastMessage, type: toastType || 'info'}));
     }
-    window.location.href = pageFor(page);
+    window.location.href = pageFor(page, role);
 }

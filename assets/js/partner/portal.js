@@ -5,7 +5,26 @@ function parsePostingCoordinates(value){
     const lat = Number(match[1]), lng = Number(match[2]);
     return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? {lat,lng} : null;
 }
-// Students who applied to a posting, ranked by compatibility (same score the student sees in Job Matching)
+// Similarity of each applicant to a posting, from the Sentence-BERT service only (same score source the student sees).
+// Applicants without a score stay in application order; there is no substitute formula.
+const applicantScores = new Map();      // 'postingId|applicantKey' -> similarity in [0, 1]
+const applicantScoreState = new Map();  // postingId -> 'loading' | 'ready' | 'unavailable'
+const applicantScoreKey = (job, applicant) => job.id + '|' + applicant.key;
+const applicantScore = (job, applicant) => applicantScores.get(applicantScoreKey(job, applicant));
+async function loadApplicantScores(job){
+    applicantScoreState.set(job.id, 'loading'); // set before the first await so a second render does not start another load
+    const ai = window.ICCore && window.ICCore.aiMatching;
+    if(!ai){ applicantScoreState.set(job.id, 'unavailable'); return; }
+    try{
+        const list = applicantsOf(job);
+        const results = await Promise.all(list.map(a => ai.scoreOne(a.skills, job.id, job)));
+        list.forEach((a, i) => { if(Number.isFinite(results[i])) applicantScores.set(applicantScoreKey(job, a), results[i]); });
+        applicantScoreState.set(job.id, 'ready');
+    }catch(error){
+        applicantScoreState.set(job.id, 'unavailable');
+    }
+}
+// Students who applied to a posting, ranked by semantic similarity once scores are loaded
 function applicantsOf(job){
     const users = getUsers(), out = [];
     Object.entries(getJSON(JOB_APPS_KEY, {})).forEach(([key, apps]) => apps.filter(a => a.job === job.id).forEach(a => {
@@ -13,9 +32,12 @@ function applicantsOf(job){
         const who = {email: a.email || u.email || key, name: a.name || u.name || key, program: a.program || u.program || 'BS Computer Science'};
         const status = jobAppStatus(a, who);
         if(['Cancelled', 'Withdrawn', 'Not placed'].includes(status)) return;
-        out.push({key, who, app: a, status, match: jobMatch(job, Object.assign({}, who, {email: key, applicationResume:a.databaseApplication ? a.resume : null}))});
+        const submitted = Object.assign({}, who, {email: key, applicationResume:a.databaseApplication ? a.resume : null});
+        // `match` only supplies the matched/gap skill chips; its score is not shown or used for ranking.
+        out.push({key, who, app: a, status, match: jobMatch(job, submitted), skills: jmSkills(submitted)});
     }));
-    return out.sort((x, y) => y.match.score - x.match.score);
+    const ai = window.ICCore && window.ICCore.aiMatching;
+    return ai ? out.sort((x, y) => ai.sortValue(applicantScore(job, y)) - ai.sortValue(applicantScore(job, x))) : out;
 }
 // Resume shown to the partner: self-declared (Resume Builder); jobs also get the system-generated Verified entries
 function resumeHtml(key, name, withVerified){
@@ -184,12 +206,15 @@ if(document.body.dataset.ppage) (async function(){
         const render = () => {
             const posts = myPosts().sort((a, b) => (b.postedAt || '').localeCompare(a.postedAt || ''));
             const sel = posts.find(j => j.id === selected);
-            const ranking = (j) => { const list = applicantsOf(j), internship = isInternshipJob(j);
-                return '<div class="border-t border-slate-200 mt-4 pt-4"><div class="text-[12.5px] font-semibold text-slate-800 mb-1">Candidate ranking</div><div class="text-[11.5px] text-slate-400 mb-3">Sorted by compatibility: 40% course fit + 60% of this posting\'s skills found in the applicant\'s resume. '
+            const ranking = (j) => { const list = applicantsOf(j), internship = isInternshipJob(j), ai = window.ICCore && window.ICCore.aiMatching, state = applicantScoreState.get(j.id) || 'loading';
+                return '<div class="border-t border-slate-200 mt-4 pt-4"><div class="text-[12.5px] font-semibold text-slate-800 mb-1">Candidate ranking</div><div class="text-[11.5px] text-slate-400 mb-3">Ranked by semantic similarity between each applicant\'s skills and this posting\'s required skills (Sentence-BERT). It is not a hiring probability. '
+                  + (state === 'unavailable' ? 'The score service is not available right now, so applicants are listed in the order they applied. ' : '')
                   + (internship ? 'Internship applicants show their self-declared resume.' : 'Job applicants show their self-declared resume and verified OJT entries.') + '</div>'
                   + (list.length ? '<div class="overflow-x-auto"><table class="w-full text-[12.5px]"><tbody class="divide-y divide-slate-100">' + list.map((a, i) => '<tr><td class="py-2.5 pr-3 text-slate-400 font-semibold">#' + (i + 1) + '</td>'
                       + '<td class="py-2.5 pr-3"><div class="font-medium text-slate-900">' + esc(a.who.name) + '</div><div class="text-[10.5px] text-slate-400">' + esc(a.who.program) + ' · applied ' + formatDate(a.app.date) + '</div></td>'
-                      + '<td class="py-2.5 pr-3 w-36"><div class="font-bold text-indigo-700">' + a.match.score + '%</div><div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-indigo-500" style="width:' + a.match.score + '%"></div></div></td>'
+                      + '<td class="py-2.5 pr-3 w-36" title="' + esc(ai ? ai.SCORE_NOTE : '') + '">' + (Number.isFinite(applicantScore(j, a))
+                          ? '<div class="font-bold text-indigo-700">' + ai.percentText(applicantScore(j, a)) + '</div><div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-indigo-500" style="width:' + ai.percentText(applicantScore(j, a)) + '"></div></div>'
+                          : '<div class="text-[11.5px] text-slate-400">' + esc(!a.skills.length ? 'No skills listed' : ai ? ai.badgeText(NaN, state) : 'Score unavailable') + '</div>') + '</td>'
                       + '<td class="py-2.5 pr-3"><div class="flex flex-wrap gap-1">' + a.match.skills.map(([n, ok]) => ok ? '<span class="tag-chip matched"><i class="fa-solid fa-check"></i>' + esc(n) + '</span>' : '<span class="tag-chip gap">' + esc(n) + ' <span class="chip-note">gap</span></span>').join('') + (a.match.courseOk ? '' : '<span class="text-[10.5px] text-amber-600">different course</span>') + '</div></td>'
                       + '<td class="py-2.5 pr-3">' + (internship && (!a.app.databaseApplication || a.status==='Deployed') ? placementBadge(a.status) : jobStatusSelect(a.key, j.id, a.status)) + '</td>'
                       + '<td class="py-2.5 text-right"><button data-resume="' + esc(a.app.databaseApplication ? 'application-' + a.app.id : a.key) + '" data-name="' + esc(a.who.name) + '" data-verified="' + (internship ? '0' : '1') + '" class="' + btn + 'text-sky-600 bg-sky-50 hover:bg-sky-100 whitespace-nowrap">View resume</button></td></tr>').join('') + '</tbody></table></div>'
@@ -206,6 +231,8 @@ if(document.body.dataset.ppage) (async function(){
                     + (j.id === selected ? ranking(j) : '') + '</div>'; }).join('')
                 : '<div class="' + card + ' p-8 text-center text-[12.5px] text-slate-400">No postings yet. Post an internship or a job to start receiving applicants.</div>');
             if(sel && params.get('job')) document.querySelector('.ring-2')?.scrollIntoView({block: 'start'});
+            // Score the open posting's applicants once, then redraw. The state is set synchronously, so this cannot loop.
+            if(sel && !applicantScoreState.has(sel.id)) loadApplicantScores(sel).then(render);
         };
         document.addEventListener('change', async (e) => {
             const s = e.target.closest('select[data-jobstatus]'); if(!s) return;
@@ -279,7 +306,7 @@ if(document.body.dataset.ppage) (async function(){
             const b = e.target.closest('[data-post]'); if(!b) return;
             const id = b.dataset.id, act = b.dataset.post;
             if(act === 'new' || act === 'edit') return openForm(act === 'edit' ? id : '');
-            if(act === 'view'){ selected = selected === id ? '' : id; return render(); }
+            if(act === 'view'){ selected = selected === id ? '' : id; applicantScoreState.delete(id); return render(); }
             const all = getJSON(POSTINGS_KEY, {}), cur = allPostings()[id] || {};
             if(act === 'toggle'){
                 if(cur.status !== 'closed' && !await askConfirm('Close "' + cur.title + '"? Students will no longer see it.')) return;

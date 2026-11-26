@@ -44,7 +44,7 @@ function initStudentInternshipOverview(me, mine, myTasks, mySub, renderNotifs){
         const docs = me.databaseAccount?[]:internDocs(p.company, p.name);
         const files = me.databaseAccount ? (lettersState==='loading'?'<p role="status" class="text-[12.5px] text-slate-400">Loading your letters…</p>'
             :lettersState==='error'?'<p class="text-[12.5px] text-slate-500">Your letters could not be loaded.</p><button type="button" data-retry-letters class="text-[12px] text-sky-700 mt-2">Try again</button>'
-            :signedLetters.length?'<div class="divide-y divide-slate-100">'+signedLetters.map(file=>'<button type="button" data-st-letter="'+esc(file.kind)+'" data-st-letter-id="'+esc(file.id || '')+'" class="w-full text-left flex items-center justify-between gap-3 py-2"><span><span class="block text-[12.5px] text-slate-800">'+(file.kind==='endorsement'?'Endorsement letter':'Acceptance letter')+'</span><span class="text-[10.5px] text-slate-400">'+esc(file.name)+'</span></span><span class="text-[12px] text-sky-700">View</span></button>').join('')+'</div>'
+            :signedLetters.length?'<div class="divide-y divide-slate-100">'+signedLetters.map(file=>'<button type="button" data-st-letter="'+esc(file.kind)+'" data-st-letter-id="'+esc(file.id || '')+'" class="student-letter-row"><span class="student-letter-icon" aria-hidden="true"><i class="fa-regular fa-file-lines"></i></span><span class="student-letter-info"><span class="student-letter-title">'+(file.kind==='endorsement'?'Endorsement letter':'Acceptance letter')+'</span><span class="student-letter-name" title="'+esc(file.name)+'">'+esc(file.name)+'</span></span><span class="student-letter-view">View <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></span></button>').join('')+'</div>'
             :'<p class="text-[12.5px] text-slate-400">Your letters will appear here when uploaded to your folder in the company vault.</p>')
             : !p.company ? '<p class="text-[12.5px] text-slate-400">Your folder is created once you apply to a partner company.</p>'
             : docs.length ? '<div class="divide-y divide-slate-100">' + docs.map(f => '<div data-st-file="' + esc(f.id) + '" role="button" tabindex="0" class="flex items-center justify-between gap-3 py-2 cursor-pointer"><div class="flex items-center gap-2.5"><i class="fa-solid fa-file-pdf text-red-400"></i><div><div class="text-[12.5px] text-slate-800">' + esc(f.name) + '</div><div class="text-[10.5px] text-slate-400">' + esc(f.type) + ' · ' + formatDate(f.uploadedAt) + (f.version > 1 ? ' · v' + f.version : '') + '</div></div></div><span class="text-[10.5px] text-slate-400">view only</span></div>').join('') + '</div>'
@@ -58,12 +58,22 @@ function initStudentInternshipOverview(me, mine, myTasks, mySub, renderNotifs){
                 : r.status === 'held' ? '<div class="text-[12.5px] text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2"><strong>On hold (' + formatDate(r.heldAt) + '):</strong> ' + esc(r.holdReason) + '</div>'
                 : '<p class="text-[12.5px] text-slate-600">Your profile data was deleted on ' + formatDate(r.processedAt) + '. Your OJT record is kept until ' + keep + '.</p>');
         }
-        ov.children[0].insertAdjacentHTML('afterend', '<div id="myInternship" class="grid lg:grid-cols-[1fr_380px] gap-4 items-start">' + card('My Internship', body, placementBadge(p.status)) + '<div class="space-y-4">' + card('My files', files, p.company ? '<span class="text-[10.5px] text-slate-400">' + esc(p.company) + ' vault</span>' : '') + deletion + '</div></div>');
+        ov.children[0].insertAdjacentHTML('afterend', '<div id="myInternship" class="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">' + card('My Internship', body, placementBadge(p.status)) + '<div class="space-y-4">' + card('My files', files, p.company ? '<span class="student-files-company" title="' + esc(p.company) + ' vault">' + esc(p.company) + ' vault</span>' : '') + deletion + '</div></div>');
         const stats = ov.querySelectorAll('.grid.grid-cols-2 > div');
         if(stats[0]){ const pct = Math.min(100, Math.round((p.hours || 0) / REQUIRED_HOURS * 100)); stats[0].querySelector('.text-lg').innerHTML = (p.hours || 0) + ' <span class="text-[12px] font-medium text-slate-400">/ ' + REQUIRED_HOURS + ' hrs</span>'; stats[0].querySelector('.bg-sky-600').style.width = pct + '%'; }
         if(stats[1]) stats[1].querySelector('.text-2xl').textContent = myTasks().filter(t => t.status === 'open' && !['Pending Review', 'Verified'].includes(mySub(t.id).status)).length;
         if(stats[2]){ const open = myJobApps(me).filter(a => JOB_OPEN.includes(jobAppStatus(a, me))); stats[2].querySelector('.text-2xl').textContent = open.length + (['Applied', 'Endorsed', 'Accepted'].includes(p.status) && !open.some(a => a.company === p.company) ? 1 : 0); }
-        if(stats[3]){ const scores = Object.values(jobDetails).filter(j => isInternshipJob(j) !== (me.status === 'alumni')).map(j => jobMatch(j, me).score); stats[3].querySelector('.text-2xl').textContent = (scores.length ? Math.max(...scores) : 0) + '%'; }
+        if(stats[3]){
+            // Top similarity from the Sentence-BERT service; "—" when it cannot score (no substitute formula).
+            const tile = stats[3].querySelector('.text-2xl'), ai = window.ICCore && window.ICCore.aiMatching;
+            const jobs = Object.fromEntries(Object.entries(jobDetails).filter(([, j]) => isInternshipJob(j) !== (me.status === 'alumni')));
+            const skills = jmSkills(me), postings = ai ? ai.buildPostings(jobs) : [];
+            tile.textContent = '…';
+            if(ai) stats[3].title = ai.SCORE_NOTE;
+            (ai && skills.length && postings.length ? ai.rankJobs(skills, postings) : Promise.reject(new Error('Nothing to score.')))
+                .then(scores => { tile.textContent = ai.percentText(Math.max(...scores.values())) || '—'; })
+                .catch(() => { tile.textContent = '—'; });
+        }
         renderNotifs();
     }
     if(ov){

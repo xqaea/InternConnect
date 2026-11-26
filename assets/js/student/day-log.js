@@ -18,6 +18,14 @@ function initStudentDayLog(mine){
     }
 
     // ---- Explain a flagged, late or absent day ----
+    // Database records say why they were flagged; older records only know the geofence.
+    function flagWhy(r){
+        const reasons = {'out of radius': 'you were outside the ' + (r.radius || GEOFENCE_M) + ' m geofence',
+            'low GPS accuracy': 'the GPS accuracy was too low' + (r.accuracy != null ? ' (±' + Math.round(r.accuracy) + ' m)' : ''),
+            'missing photo': 'no live photo was captured'};
+        if(!(r.flags || []).length) return 'Your clock-in was outside the ' + (r.radius || GEOFENCE_M) + ' m geofence.';
+        return 'Your clock-in was flagged: ' + r.flags.map(f => reasons[f] || f).join('; ') + '.';
+    }
     function renderDayExplain(p, r){
         const card = document.querySelector('#tab-daylog .max-w-lg');
         document.getElementById('dayExplain')?.remove();
@@ -31,7 +39,7 @@ function initStudentDayLog(mine){
                 + '<div class="text-[12px] font-semibold mt-2 ' + DONE[r.review][0] + '">' + DONE[r.review][1] + '</div></div>');
             return;
         }
-        const why = {Flagged: 'Your clock-in was outside the ' + (r.radius || GEOFENCE_M) + ' m geofence.', Absent: 'There is no clock-in for this scheduled day.', Late: 'You clocked in after your grace period.', 'Outside schedule':'This clock-in was outside your scheduled work days.'}[r.status];
+        const why = {Flagged: flagWhy(r), Absent: 'There is no clock-in for this scheduled day.', Late: 'You clocked in after your grace period.', 'Outside schedule':'This clock-in was outside your scheduled work days.'}[r.status];
         const field = 'w-full border border-slate-300 rounded-md px-3 py-2 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-sky-400';
         card.insertAdjacentHTML('beforeend', box
             + '<div class="text-[13px] font-semibold text-slate-800">' + (r.note ? 'Your explanation' : 'Explain this day') + '</div>'

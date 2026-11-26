@@ -10,6 +10,8 @@ from partner_auth import partner
 from student_resume import Resume, Photo
 
 router = APIRouter()
+# Thesis Chapter 3 sets the default geofence radius to 150 m (adjustable per site). The pages use the same value.
+DEFAULT_GEOFENCE_M = 150
 
 
 class Site(BaseModel):
@@ -79,7 +81,7 @@ def confirm(application_id:int,body:Confirm,account=Depends(coordinator)):
         if schedule['mode']!='Remote' and not schedule['site']:
             if application.get('latitude') is None or application.get('longitude') is None:
                 raise HTTPException(400,'Set the worksite coordinates using the branch location option before deployment.')
-            schedule['site']=dict(lat=application['latitude'],lng=application['longitude'],place='Company worksite',radius=100)
+            schedule['site']=dict(lat=application['latitude'],lng=application['longitude'],place='Company worksite',radius=DEFAULT_GEOFENCE_M)
         cursor.execute('INSERT INTO official_placements (student_id,application_id,coordinator_id,schedule,endorsement,acceptance,confirmed_at) VALUES (%s,%s,%s,%s,%s,%s,UTC_TIMESTAMP())',
             (application['student_id'],application_id,account['id'],json.dumps(schedule),body.endorsement.model_dump_json(),body.acceptance.model_dump_json()))
     return {'ok':True}

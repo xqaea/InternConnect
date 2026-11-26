@@ -376,3 +376,29 @@ html[data-theme="rose"]{--navA:rgba(244,63,94,0.18);}
 .password-strength[data-level="2"] .password-strength-label{color:#B45309;}
 .password-strength[data-level="3"] .password-strength-label{color:#047857;}
 @media (prefers-reduced-motion:reduce){.password-strength-fill{transition:none;}}
+
+/* Modern student activity cards. */
+.student-activity-row { --accent:#2563eb; --tint:#eff6ff; display:flex; align-items:center; gap:12px; padding:12px 14px; margin:8px 16px; border:1px solid #e2e8f0 !important; border-radius:12px; background:linear-gradient(110deg,#f8fafc,#fff 60%); text-decoration:none; box-shadow:0 2px 6px rgb(15 23 42 / 4%); }
+.student-activity-row[data-tone="violet"] { --accent:#7c3aed; --tint:#f5f3ff; }
+.student-activity-row[data-tone="green"] { --accent:#059669; --tint:#ecfdf5; }
+.student-activity-icon { display:grid; place-items:center; width:34px; height:34px; flex-shrink:0; border-radius:10px; background:var(--tint); color:var(--accent); font-size:14px; }
+.student-activity-content { flex:1; min-width:0; }
+.student-activity-title { color:#1e293b; font-size:12.5px; font-weight:600; line-height:1.5; overflow-wrap:anywhere; }
+.student-activity-message { color:#64748b; font-size:12px; line-height:1.6; margin-top:3px; overflow-wrap:anywhere; }
+.student-activity-date { color:#94a3b8; font-size:10.5px; margin-top:4px; }
+.student-activity-arrow { color:#94a3b8; font-size:10px; }
+a.student-activity-row:hover { border-color:#cbd5e1 !important; box-shadow:0 4px 12px rgb(15 23 42 / 8%); }
+a.student-activity-row:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+@media(max-width:600px) { .student-activity-row { margin:8px 12px; padding:11px 12px; gap:10px; } .student-activity-icon { width:32px; height:32px; font-size:13px; } }
+
+/* Student letters: fixed action width with filenames contained in their column. */
+.student-letter-row { display:flex; align-items:center; gap:10px; width:100%; min-width:0; padding:14px 0; text-align:left; }
+.student-letter-icon { display:grid; place-items:center; flex:0 0 34px; height:40px; border-radius:9px; background:#eff6ff; color:#3b82f6; font-size:16px; }
+.student-letter-info { flex:1; min-width:0; }
+.student-letter-title { display:block; font-size:12.5px; font-weight:600; color:#334155; line-height:1.5; }
+.student-letter-name { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:4px; font-size:10.5px; color:#94a3b8; }
+.student-letter-view { flex-shrink:0; display:flex; align-items:center; gap:6px; padding:6px 8px; border:1px solid #e2e8f0; border-radius:7px; background:#f8fafc; color:#475569; font-size:11px; font-weight:500; }
+.student-letter-view i { font-size:9px; }
+.student-letter-row:hover .student-letter-view { background:#eff6ff; color:#2563eb; border-color:#bfdbfe; }
+.student-letter-row:focus-visible { outline:2px solid #3b82f6; outline-offset:3px; border-radius:6px; }
+.student-files-company { min-width:0; max-width:60%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#94a3b8; font-size:10.5px; }

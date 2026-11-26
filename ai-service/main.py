@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 from sentence_transformers import SentenceTransformer
 
-from matching import cosine_similarity, rank_embeddings
+from matching import cosine_similarity, parse_threshold, rank_embeddings
 from onet_skills import load_skill_catalog, normalize_skills
 from onet_import import TABLE_COLUMNS
 from onet_occupations import OccupationCatalog
@@ -17,6 +17,8 @@ from careers import profile_text, rank_careers
 
 MODEL_NAME = 'sentence-transformers/all-MiniLM-L6-v2'
 MODEL_PATH = Path(__file__).resolve().parent / 'models' / 'all-MiniLM-L6-v2'
+# Similarity cutoff tau for "does this posting match". Development baseline 0.60 until calibrated (PLAN.md Phase 1).
+MATCH_THRESHOLD = parse_threshold(os.getenv('IC_MATCH_THRESHOLD'))
 app = FastAPI(title='InternConnect AI Service')
 app.add_middleware(
     CORSMiddleware,
@@ -221,8 +223,8 @@ def rank_matches(request: RankRequest) -> dict[str, object]:
         (posting.id, embedding)
         for posting, embedding in zip(request.postings, vectors[1:])
     ]
-    matches = rank_embeddings(vectors[0], postings)
+    matches = rank_embeddings(vectors[0], postings, MATCH_THRESHOLD)
     for match in matches:
         if match['posting_id'] in contexts:
             match['onet_occupation'] = contexts[match['posting_id']]
-    return {'model': MODEL_NAME, 'matches': matches}
+    return {'model': MODEL_NAME, 'threshold': MATCH_THRESHOLD, 'matches': matches}

@@ -7,6 +7,13 @@ const NEXT_HINT = {
     'Withdrawn': 'Withdrawn. Records are kept for 5 years.'
 };
 
+// Why a clock event was flagged (database records): low GPS accuracy, missing photo, ... The distance line already
+// says "outside geofence", so that reason is not repeated.
+function flagsHtml(r){
+    const shown = (r.flags || []).filter(f => f !== 'out of radius');
+    return !shown.length ? '' : '<div class="text-[10.5px] text-red-500 max-w-[210px] whitespace-normal leading-snug">'
+        + esc(shown.map(f => f.startsWith('low GPS accuracy') && r.accuracy != null ? f + ' (±' + Math.round(r.accuracy) + ' m)' : f).join(' · ')) + '</div>';
+}
 let attFilter = '';
 let attShowAll = false;
 function attendanceCard(p, deployed){
@@ -53,7 +60,7 @@ function attendanceCard(p, deployed){
     const rows = shown.map(r => {
         const absent = r.status === 'Absent' || r.status === 'Holiday';
         const where = r.status === 'Holiday' ? '<span class="text-violet-700">' + esc(r.place) + '</span>' : absent ? '—' : r.remote ? '<span class="text-slate-600">' + r.place + '</span>'
-            : '<div class="text-slate-600">' + esc(r.place) + '</div><div class="text-[10.5px] ' + (r.dist > (r.radius || GEOFENCE_M) ? 'text-red-500' : 'text-slate-400') + '">' + (r.dist > (r.radius || GEOFENCE_M) ? 'Outside geofence · ' : 'Inside geofence · ') + r.dist + ' m</div>';
+            : '<div class="text-slate-600">' + esc(r.place) + '</div><div class="text-[10.5px] ' + (r.dist > (r.radius || GEOFENCE_M) ? 'text-red-500' : 'text-slate-400') + '">' + (r.dist > (r.radius || GEOFENCE_M) ? 'Outside geofence · ' : 'Inside geofence · ') + r.dist + ' m</div>' + flagsHtml(r);
         return '<tr' + (r.status === 'Flagged' && !r.review ? ' class="bg-red-50/40"' : r.status === 'Absent' && r.note && !r.review ? ' class="bg-amber-50/40"' : '') + '>'
           + '<td class="px-3 py-2 text-[12px] text-slate-700 whitespace-nowrap">' + formatDate(r.date) + '<div class="text-[10.5px] text-slate-400">' + new Date(r.date + 'T00:00:00').toLocaleDateString('en-US', {weekday: 'short'}) + '</div></td>'
           + '<td class="px-3 py-2">' + (absent ? '<span class="text-[12px] text-slate-400">—</span>' : photo(r, 'in')) + '</td>'
@@ -92,7 +99,7 @@ function showClockPhoto(p, date, kind){
         + '<div class="flex-1 min-w-0 divide-y divide-slate-100">'
         + row('Intern', esc(p.name))
         + row('Recorded time', formatDate(date) + ' ' + fmtClock(kind === 'in' ? r.timeIn : r.timeOut))
-        + row('Photo', 'Live camera capture')
+        + row('Photo', 'Live camera capture' + (kind === 'in' ? ' (capture code and time are printed on the picture)' : ''))
         + row('Location', r.remote ? 'Remote (work from home)' : esc(r.place))
         + row('GPS', lat && lng ? '<a target="_blank" rel="noopener" class="text-sky-600 hover:underline" href="https://www.google.com/maps?q=' + lat + ',' + lng + '">' + lat + ', ' + lng + '</a>' : 'Not recorded')
         + row('Geofence', r.remote ? 'Not required (remote day)' : distance > (r.radius || GEOFENCE_M) ? '<span class="text-red-600 font-medium">Outside · ' + distance + ' m away</span>' : '<span class="text-emerald-700 font-medium">Inside · ' + distance + ' m away</span>')
@@ -235,7 +242,7 @@ if(!document.getElementById('internProfile')) return;
             if(act === 'att-all') attShowAll = !attShowAll;
             if(['att-accept', 'att-reject', 'att-excuse', 'att-keep', 'att-undo'].includes(act)){
                 if(p.databaseRecord || p.databasePlacement){
-                    const decision={'att-accept':'accepted','att-reject':'rejected','att-undo':''}[act];
+                    const decision={'att-accept':'accepted','att-reject':'rejected','att-excuse':'excused','att-keep':'unexcused','att-undo':''}[act];
                     if(decision===undefined) return showToast('This action is not available for recorded attendance.', 'warn');
                     btn.disabled=true;
                     try{

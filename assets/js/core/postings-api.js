@@ -19,6 +19,9 @@
       return body;
     }finally{ clearTimeout(timer); }
   }
+  root.ICAuthApi = {
+    login: (email, password) => request('/api/auth/login', {method:'POST', body:JSON.stringify({email, password})})
+  };
   root.ICPostingApi = {
     me: () => request('/api/partner/me'),
     attendance: () => request('/api/partner/attendance'),
@@ -39,6 +42,7 @@
     submitReport: (id,raw) => request('/api/student/tasks/'+encodeURIComponent(id)+'/report', {method:'POST',body:JSON.stringify({raw}),studentAuth:true}),
     tasks: () => request('/api/student/tasks', {studentAuth:true}),
     attendance: () => request('/api/student/attendance', {studentAuth:true}),
+    attendanceChallenge: () => request('/api/student/attendance/challenge', {method:'POST',studentAuth:true}),
     clock: data => request('/api/student/attendance/clock', {method:'POST',body:JSON.stringify(data),studentAuth:true}),
     explainAttendance: data => request('/api/student/attendance/explanation', {method:'PUT',body:JSON.stringify(data),studentAuth:true}),
     placements: () => request('/api/student/placements', {studentAuth:true}),
@@ -80,6 +84,9 @@
     deleteTask: id => coordinatorRequest('/api/coordinator/tasks/'+encodeURIComponent(id), {method:'DELETE'}),
     attendance: () => coordinatorRequest('/api/coordinator/attendance'),
     reviewAttendance: data => coordinatorRequest('/api/coordinator/attendance/review', {method:'PUT',body:JSON.stringify(data)}),
+    holidays: code => coordinatorRequest('/api/coordinator/holidays?class_code='+encodeURIComponent(code)),
+    addHoliday: data => coordinatorRequest('/api/coordinator/holidays', {method:'POST',body:JSON.stringify(data)}),
+    deleteHoliday: (code,date) => coordinatorRequest('/api/coordinator/holidays/'+encodeURIComponent(code)+'/'+encodeURIComponent(date), {method:'DELETE'}),
     placements: () => coordinatorRequest('/api/coordinator/placements'),
     confirmDeployment: (id, data) => coordinatorRequest('/api/coordinator/applications/' + encodeURIComponent(id) + '/deployment', {method:'POST',body:JSON.stringify(data)}),
     applications: () => coordinatorRequest('/api/coordinator/applications'),

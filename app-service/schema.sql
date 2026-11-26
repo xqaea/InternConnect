@@ -89,6 +89,23 @@ CREATE TABLE IF NOT EXISTS student_attendance (
  FOREIGN KEY(student_id) REFERENCES student_accounts(id),
  FOREIGN KEY(reviewed_by) REFERENCES coordinator_accounts(id)
 ) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS attendance_holidays (
+ class_code VARCHAR(100) NOT NULL, holiday_date DATE NOT NULL, name VARCHAR(150) NOT NULL,
+ kind VARCHAR(40) NOT NULL, created_by BIGINT NOT NULL, created_at DATETIME NOT NULL,
+ PRIMARY KEY(class_code,holiday_date), FOREIGN KEY(created_by) REFERENCES coordinator_accounts(id)
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS attendance_absences (
+ student_id BIGINT NOT NULL, work_date DATE NOT NULL, review VARCHAR(20) NOT NULL DEFAULT '',
+ reviewed_by BIGINT NULL, note JSON NULL, created_at DATETIME NOT NULL,
+ PRIMARY KEY(student_id,work_date), FOREIGN KEY(student_id) REFERENCES student_accounts(id),
+ FOREIGN KEY(reviewed_by) REFERENCES coordinator_accounts(id)
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS attendance_attempts (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY, student_id BIGINT NOT NULL, attempted_at DATETIME(6) NOT NULL,
+ action VARCHAR(3) NOT NULL, outcome VARCHAR(10) NOT NULL, reasons VARCHAR(200) NOT NULL DEFAULT '',
+ distance_m INT NULL, accuracy_m DOUBLE NULL, radius_m INT NULL,
+ INDEX attempts_student_time (student_id,attempted_at), FOREIGN KEY(student_id) REFERENCES student_accounts(id)
+) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS classwork_tasks (
  id VARCHAR(64) PRIMARY KEY, class_code VARCHAR(100) NOT NULL, payload JSON NOT NULL,
  created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL,

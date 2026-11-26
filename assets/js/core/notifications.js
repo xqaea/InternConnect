@@ -11,6 +11,11 @@
     if(waiting){const count=items.filter(item=>item.unread && item.section==='requests' && (!item.classCode || item.classCode===activeClassCode())).length;waiting.textContent=String(count);waiting.classList.toggle('hidden',!count);waiting.setAttribute('aria-label',count+' unread requests');}
   }
   const rows=entries=>entries.map(item=>'<a href="'+esc(item.href)+'" class="block px-4 py-3 hover:bg-slate-50 '+(item.unread?'bg-sky-50/50':'')+'"><div class="text-[12.5px] font-semibold text-slate-700">'+esc(item.title)+'</div><div class="text-[12px] text-slate-600 mt-0.5">'+esc(item.message)+'</div><div class="text-[10.5px] text-slate-400 mt-1">'+esc(formatDate(item.date))+'</div></a>').join('');
+  function activityRow(item){
+    const styles = {classwork:['violet','fa-file-lines'], jobs:['blue','fa-briefcase'], attendance:['green','fa-clock'], placements:['blue','fa-building']};
+    const [tone,icon] = styles[item.section] || ['blue','fa-bell'];
+    return '<a href="'+esc(item.href)+'" class="student-activity-row" data-tone="'+tone+'"><span class="student-activity-icon" aria-hidden="true"><i class="fa-solid '+icon+'"></i></span><div class="student-activity-content"><div class="student-activity-title">'+esc(item.title)+'</div><div class="student-activity-message">'+esc(item.message)+'</div><div class="student-activity-date"><i class="fa-regular fa-clock" aria-hidden="true"></i> '+esc(formatDate(item.date))+'</div></div><i class="fa-solid fa-chevron-right student-activity-arrow" aria-hidden="true"></i></a>';
+  }
   function render(){
     if(!enabled()) return;
     const box=list();
@@ -27,7 +32,7 @@
     if(role==='student'){
       const heading=[...document.querySelectorAll('#tab-overview h2')].find(element=>element.textContent.trim()==='Recent Activity');
       const activity=heading?.closest('.bg-white')?.querySelector('.divide-y');
-      if(activity) activity.innerHTML=items.length?rows(items.slice(0,6)):'<div class="px-5 py-4 text-[12px] text-slate-400">No new activity yet.</div>';
+      if(activity) activity.innerHTML=items.length?items.slice(0,3).map(activityRow).join(''):'<div class="px-5 py-4 text-[12px] text-slate-400">No new activity yet.</div>';
     }
     badge();
   }

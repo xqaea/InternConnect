@@ -5,15 +5,28 @@ function createStudentAttendanceControls({currentUserRecord, isAlumni, session, 
   let attendancePosition = null;
   let timeInMoment = null;
   let attendanceAction = 'in';
+  let timeOutPending = false;
+  // The server hands out a short-lived code each time the camera opens. It is printed onto the photo so a reviewer can see
+  // the picture was taken just now, and the server refuses a photo that does not come with a valid code.
+  let attendanceChallenge = null;
 
   function stopAttendanceCamera(){
     if(attendanceStream){
       attendanceStream.getTracks().forEach(t => t.stop());
       attendanceStream = null;
     }
+    attendanceChallenge = null;
+  }
+
+  async function refreshChallenge(){
+    attendanceChallenge = null;
+    if(!session()?.databaseAccount) return;
+    try{ attendanceChallenge = await window.ICStudentApi.attendanceChallenge(); }
+    catch(error){ toast('Could not start a secure capture. Check your connection and open the camera again.', 'warn'); }
   }
 
   function startAttendanceCamera(){
+    if(attendanceAction !== 'in') return;
     const video = document.getElementById('attendanceCamera');
     const cameraModal = document.getElementById('attendanceCameraModal');
     if(!video || !cameraModal) return;
@@ -23,6 +36,7 @@ function createStudentAttendanceControls({currentUserRecord, isAlumni, session, 
       .then(stream => {
         attendanceStream = stream;
         video.srcObject = stream;
+        refreshChallenge();
       })
       .catch(() => {
         stopAttendanceCamera();
@@ -50,6 +64,7 @@ function createStudentAttendanceControls({currentUserRecord, isAlumni, session, 
     if((liveRecs(user.name)[todayISO()] || {}).in != null) return toast('You already timed in today.', 'info');
 
     attendanceAction = 'in';
+    retakeAttendancePhoto();
     attendancePhoto = '';
     attendancePosition = null;
     show('attendancePermissionModal');
@@ -64,15 +79,28 @@ function createStudentAttendanceControls({currentUserRecord, isAlumni, session, 
   }
 
   function captureAttendancePhoto(){
+    if(attendanceAction !== 'in') return;
     const video = document.getElementById('attendanceCamera');
     const canvas = document.getElementById('attendanceCanvas');
     const previewWrap = document.getElementById('timeInPhotoPreview');
     const img = document.getElementById('timeInPhoto');
     if(!video || !canvas || !video.videoWidth) return toast('Camera is not ready yet. Please wait a moment.', 'warn');
+    // Only a frame from the camera that is live right now counts. There is no way to choose a file or a gallery picture.
+    const track = attendanceStream && attendanceStream.getVideoTracks && attendanceStream.getVideoTracks()[0];
+    if(!track || track.readyState !== 'live') return toast('The camera is not live. Close this window and open the camera again.', 'warn');
+    if(session()?.databaseAccount && !attendanceChallenge) return toast('The secure capture code is not ready yet. Please wait a moment and capture again.', 'warn');
     const scale = Math.min(1, 480 / video.videoWidth);
     canvas.width = Math.round(video.videoWidth * scale);
     canvas.height = Math.round(video.videoHeight * scale);
-    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    const context = canvas.getContext('2d');
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // Print the capture code and the time onto the picture itself.
+    const stamp = (attendanceChallenge ? 'CODE ' + attendanceChallenge.code + '  ' : '') + new Date().toLocaleString();
+    context.fillStyle = 'rgba(0,0,0,0.65)';
+    context.fillRect(0, canvas.height - 26, canvas.width, 26);
+    context.fillStyle = '#ffffff';
+    context.font = 'bold 15px sans-serif';
+    context.fillText(stamp, 8, canvas.height - 8);
     attendancePhoto = canvas.toDataURL('image/jpeg', 0.55);
     if(img){ img.src = attendancePhoto; }
     if(previewWrap){ previewWrap.classList.remove('hidden'); previewWrap.classList.add('flex'); }
@@ -86,6 +114,7 @@ function createStudentAttendanceControls({currentUserRecord, isAlumni, session, 
 
   function retakeAttendancePhoto(){
     attendancePhoto = '';
+    if(attendanceStream) refreshChallenge(); // a new picture needs a new code
     document.getElementById('captureAttendancePhotoBtn')?.classList.remove('hidden');
     document.getElementById('captureAttendancePhotoBtn')?.classList.add('flex');
     document.getElementById('retakeAttendancePhotoBtn')?.classList.add('hidden');
@@ -95,21 +124,26 @@ function createStudentAttendanceControls({currentUserRecord, isAlumni, session, 
   }
 
   async function confirmTimeIn(){
-    if(!attendancePhoto) return toast('Capture an attendance photo first.', 'warn');
+    if(attendanceAction === 'in' && !attendancePhoto) return toast('Capture an attendance photo first.', 'warn');
     if(!attendancePosition) return toast('Your location could not be verified. Allow location access and try again.', 'warn');
     if(session()?.databaseAccount){
       const button=document.getElementById('confirmAttendancePhotoBtn');
       if(button?.disabled) return;
       if(button) button.disabled=true;
       try{
-        await window.ICStudentApi.clock({action:attendanceAction,photo:attendancePhoto,
+        const saved = await window.ICStudentApi.clock({action:attendanceAction,...(attendanceAction === 'in' ? {photo:attendancePhoto,challenge:attendanceChallenge?.token || ''} : {}),
           lat:attendancePosition.latitude,lng:attendancePosition.longitude,accuracy:attendancePosition.accuracy});
         cacheDatabaseAttendance((await window.ICStudentApi.attendance()).attendance);
         stopAttendanceCamera();hide('attendanceCameraModal');
         window.renderStudentAttendance?.();
         window.renderTodayClock?.();
-        toast(attendanceAction==='out'?'Time Out saved.':'Time In saved.', 'success');
-      }catch(error){ toast(error.message || 'Could not save attendance. Please refresh before retrying.', 'warn'); }
+        const label = attendanceAction==='out'?'Time Out':'Time In';
+        if((saved?.flags || []).length) toast(label + ' saved, but it is flagged for your coordinator to review: ' + saved.flags.join(', ') + '. You can add an explanation in the day log.', 'warn');
+        else toast(label + ' saved.', 'success');
+      }catch(error){
+        toast(error.message || 'Could not save attendance. Please refresh before retrying.', 'warn');
+        if(attendanceAction === 'in' && error.status === 400) retakeAttendancePhoto(); // the photo was not accepted: take a new one
+      }
       finally{if(button)button.disabled=false;}
       return;
     }
@@ -127,7 +161,7 @@ function createStudentAttendanceControls({currentUserRecord, isAlumni, session, 
       if(stamp) stamp.textContent = timeOutMoment.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
       const total = document.getElementById('hoursTotal');
       if(total) total.textContent = hrs;
-      toast('Time Out recorded with your attendance photo and location.', 'success');
+      toast('Time Out recorded with your location.', 'success');
       return;
     }
     timeInMoment = new Date();
@@ -146,19 +180,25 @@ function createStudentAttendanceControls({currentUserRecord, isAlumni, session, 
     toast('Time In recorded with your attendance photo and location.', 'success');
   }
 
-  function timeOut(){
+  async function timeOut(){
+    if(timeOutPending) return;
     const me = getJSON('ic_session', {}), today = liveRecs(me.name)[todayISO()] || {};
     if(today.in == null) return toast('Please Time In first.', 'warn');
     if(today.out != null) return toast('You already timed out today.', 'info');
+    timeOutPending = true;
+    const button = document.getElementById('timeOutBtn');
+    if(button) button.disabled = true;
     attendanceAction = 'out';
     attendancePhoto = '';
     attendancePosition = null;
-    const confirm = document.getElementById('confirmAttendancePhotoBtn');
-    if(confirm) confirm.textContent = 'Confirm Time Out';
-    const message = document.querySelector('#attendancePermissionModal p');
-    if(message) message.textContent = 'To record Time Out, InternConnect needs a live attendance photo and your current location. Your browser may show permission prompts next.';
-    retakeAttendancePhoto();
-    show('attendancePermissionModal');
+    stopAttendanceCamera();
+    try{
+      await requestLocation();
+      await confirmTimeIn();
+    }finally{
+      timeOutPending = false;
+      if(button) button.disabled = false;
+    }
   }
 
   function initAttendanceControls(){
@@ -235,10 +275,10 @@ function saveLiveClock(name, kind, photo, coords){
     const dist = coords ? Math.round(2 * 6371000 * Math.asin(Math.sqrt(Math.sin(rad(coords.latitude - site.lat) / 2) ** 2 + Math.cos(rad(site.lat)) * Math.cos(rad(coords.latitude)) * Math.sin(rad(coords.longitude - site.lng) / 2) ** 2))) : null;
     if(kind === 'in') Object.assign(rec, {in: mins, photoIn: photo, lat: coords ? coords.latitude.toFixed(5) : '', lng: coords ? coords.longitude.toFixed(5) : '', dist});
     else {
-        if(rec.in == null || rec.out != null || !coords || !photo) return 0;
+        if(rec.in == null || rec.out != null || !coords) return 0;
         const span = mins - rec.in;
         Object.assign(rec, {out: mins, hours: Math.max(0, Math.round((span - (span > 300 ? 60 : 0)) / 6) / 10),
-            photoOut: photo, latOut: coords.latitude.toFixed(5), lngOut: coords.longitude.toFixed(5), distOut: dist});
+            latOut: coords.latitude.toFixed(5), lngOut: coords.longitude.toFixed(5), distOut: dist});
     }
     mine[date] = rec; all[name] = mine;
     localStorage.setItem(LIVE_KEY, JSON.stringify(all));

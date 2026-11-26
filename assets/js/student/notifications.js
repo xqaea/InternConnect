@@ -28,6 +28,5 @@ function renderStudentRecordNotifications(me, mine, myTasks, mySub){
         if(topButton) topButton.querySelector('.notification-dot')?.classList.toggle('hidden', !top.length);
         const recent = [...document.querySelectorAll('#tab-overview h2')].find(x => x.textContent.trim() === 'Recent Activity');
         const box = recent && recent.closest('.bg-white').querySelector('.divide-y');
-        if(box) box.innerHTML = top.length ? top.map(x => '<div class="flex items-start gap-3 px-5 py-3"><div class="w-7 h-7 rounded-full ' + x.tone + ' flex items-center justify-center flex-shrink-0 mt-0.5"><i class="fa-solid ' + x.icon + ' text-[11px]"></i></div>'
-            + '<div class="text-[13px] text-slate-600">' + x.text + ' <span class="text-slate-400">· ' + (x.date ? formatDate(x.date) : '') + '</span></div></div>').join('') : empty;
+        if(box) box.innerHTML = top.length ? top.slice(0, 3).map(x => '<div class="student-activity-row"><div class="student-activity-message">' + x.text + '</div><div class="student-activity-date">' + (x.date ? formatDate(x.date) : '') + '</div></div>').join('') : empty;
     }

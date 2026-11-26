@@ -9,7 +9,27 @@ router = APIRouter()
 
 def resource_label(resource_id):
     value=str(resource_id)
-    return 'Letter '+value[7:] if value.startswith('letter-') else 'Task '+value
+    if value.startswith('letter-'):
+        return 'Letter '+value[7:]
+    if value.startswith('attendance-'):
+        return 'Attendance '+value[11:]
+    if value.startswith('holiday-'):
+        return 'Holiday '+value[8:]
+    return 'Task '+value
+
+
+AUDIT_INSERT=('INSERT INTO audit_events (class_code,actor_role,actor_id,subject_id,resource_id,action,status,created_at) '
+              'VALUES (%s,%s,%s,%s,%s,%s,%s,UTC_TIMESTAMP())')
+
+
+def record_attendance(cursor, class_code, role, actor_id, student_id, work_date, action, status='Success'):
+    # Same transaction as the attendance change: a failed audit write rolls the change back too.
+    cursor.execute(AUDIT_INSERT, (class_code, role, actor_id, student_id, 'attendance-'+str(work_date), action, status))
+
+
+def record_batch_event(cursor, class_code, coordinator_id, resource_id, action, status='Success'):
+    # Batch-wide events (holidays) have no single student, so the subject id is 0.
+    cursor.execute(AUDIT_INSERT, (class_code, 'coordinator', coordinator_id, 0, resource_id, action, status))
 
 
 def record_report(cursor, task_id, role, account_id, student_id, action):
@@ -26,5 +46,5 @@ def activity(class_code: str, account=Depends(coordinator)):
                        (class_code, account['id']))
         return {'entries': [dict(id=row['id'], at=(row['created_at']+timedelta(hours=8)).strftime('%Y-%m-%d %H:%M:%S'),
                     user=row['actor_role'].title()+' #'+str(row['actor_id']),
-                    action=row['action']+' · '+resource_label(row['resource_id'])+' · Student #'+str(row['subject_id']),
+                    action=row['action']+' · '+resource_label(row['resource_id'])+(' · Student #'+str(row['subject_id']) if row['subject_id'] else ''),
                     status=row['status']) for row in cursor.fetchall()]}
