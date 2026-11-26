@@ -28,6 +28,7 @@ function initStudentRecords(){
         cacheDatabaseAttendance((await window.ICStudentApi.attendance()).attendance);
         cacheDatabaseTasks((await window.ICStudentApi.tasks()).tasks);
         cacheDatabaseReports((await window.ICStudentApi.reports()).reports);
+        await window.ICNotifications.load();
         cacheDatabaseApplications(applications.applications);
         const resumes = getJSON('ic_resume', {});
         const resumeKey = result.user.email.toLowerCase();

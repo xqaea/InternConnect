@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, model_validator
 from db import database
 from student_auth import student
 from coordinator_auth import coordinator
+from audit import record_report
 
 router=APIRouter()
 
@@ -43,6 +44,8 @@ def submit(task_id:str,body:Submission,account=Depends(student)):
         if previous and previous['status']!='Needs Revision':
             raise HTTPException(409,'This report has already been submitted. Wait for coordinator feedback.')
         cursor.execute("INSERT INTO narrative_reports (task_id,student_id,raw,bullet,status,submitted_at,version) VALUES (%s,%s,%s,%s,'Pending Review',UTC_TIMESTAMP(),1) ON DUPLICATE KEY UPDATE raw=VALUES(raw),bullet=VALUES(bullet),status='Pending Review',submitted_at=UTC_TIMESTAMP(),version=version+1,feedback='',score=NULL,grade_feedback='',reviewed_by=NULL,reviewed_at=NULL",(task_id,account['id'],body.raw.strip(),bullet(body.raw)))
+        record_report(cursor,task_id,'student',account['id'],account['id'],
+                      'Report resubmitted' if previous else 'Report submitted')
     return {'ok':True}
 
 
@@ -111,4 +114,10 @@ def decide(task_id:str,body:Decision,account=Depends(coordinator)):
             if body.score>payload['maxPoints']:
                 raise HTTPException(400,'Grade exceeds the maximum points for this task.')
             cursor.execute('UPDATE narrative_reports SET score=%s,grade_feedback=%s WHERE task_id=%s AND student_id=%s',(body.score,body.feedback,task_id,report['student_id']))
+        if body.status or body.score is not None:
+            action='Report '+body.status if body.status else 'Report graded'
+            if body.status and body.score is not None:
+                action+=' and graded'
+            record_report(cursor,task_id,'coordinator',account['id'],report['student_id'],
+                          action+(' ('+str(body.score)+' points)' if body.score is not None else ''))
     return {'ok':True}

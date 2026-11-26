@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../../assets/css/styles.css">
-    <script src="../../assets/js/theme.js"></script>
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=20261030-structured-work">
+    <script src="../../assets/js/theme.js?v=20261030-partner-theme"></script>
     <title>Attendance — InternConnect</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -94,7 +94,7 @@
           <section class="tab-panel space-y-5" id="tab-attendance">
             <div>
               <h1 class="text-xl font-bold text-slate-900">Attendance</h1>
-              <p class="text-sm text-slate-500 mt-0.5">Time in with your location and photo, then track your monthly calendar.</p>
+              <p class="text-sm text-slate-500 mt-0.5">Time in with your location and photo, then review your attendance records.</p>
             </div>
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5" id="timeInForm">
               <h2 class="font-semibold text-slate-900 text-sm mb-3">Today's Attendance</h2>
@@ -120,19 +120,6 @@
                   <div class="text-slate-400 mt-0.5"><span id="timeOutStamp">5:10 PM</span> · Total: <span id="hoursTotal">8.1</span> hrs logged today</div>
                 </div>
               </div>
-            </div>
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-              <div class="flex items-center justify-between mb-4">
-                <h2 class="font-semibold text-slate-900 text-sm">September 2026</h2>
-                <div class="flex items-center gap-3 text-[11px] text-slate-400">
-                  <span><span class="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-100 border border-emerald-300 mr-1"></span>Present</span>
-                  <span><span class="inline-block w-2.5 h-2.5 rounded-sm bg-red-100 border border-red-300 mr-1"></span>Absent</span>
-                </div>
-              </div>
-              <div class="grid grid-cols-7 gap-1.5 text-center text-[10.5px] text-slate-400 mb-1.5">
-                <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
-              </div>
-              <div class="grid grid-cols-7 gap-1.5" id="attendanceCalendar"></div>
             </div>
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div class="px-5 py-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
@@ -213,17 +200,21 @@
 <script src="../../assets/js/core/audit.js"></script>
 <script src="../../assets/js/core/placements.js"></script>
 <script src="../../assets/js/core/retention.js"></script>
+<script src="../../assets/js/core/calendar.js?v=20261030-fast-picker"></script>
 <script src="../../assets/js/core/shell.js"></script>
     <script src="../../assets/js/script.js"></script><script src="../../assets/js/core/date.js"></script>
 <script src="../../assets/js/core/jobs.js"></script>
 <script src="../../assets/js/student/runtime.js"></script>
-<script src="../../assets/js/student/attendance.js"></script>
+<script src="../../assets/js/student/attendance.js?v=20261110-time-in-photo"></script>
 <script src="../../assets/js/student/task-records.js"></script>
-<script src="../../assets/js/student/internship-overview.js"></script>
+<script src="../../assets/js/student/document-viewer.js?v=20261030"></script>
+<script src="../../assets/js/student/internship-overview.js?v=20261030-shared-letters"></script>
 <script src="../../assets/js/student/day-log.js"></script>
 <script src="../../assets/js/student/notifications.js"></script>
 <script src="../../assets/js/student/account.js"></script>
-<script src="../../assets/js/core/postings-api.js"></script>
+<script src="../../assets/js/core/postings-api.js?v=20261030-shared-letters"></script>
+<script src="../../assets/js/core/shared-letters.js?v=20261030"></script>
+<script src="../../assets/js/core/notifications.js"></script>
 <script src="../../assets/js/student/common.js"></script>
 <script src="../../assets/js/student/session.js"></script>
 <script src="../../assets/js/student/ui.js"></script>

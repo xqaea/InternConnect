@@ -19,7 +19,11 @@
       return body;
     }finally{ clearTimeout(timer); }
   }
+  root.ICAuthApi = {
+    login: (email, password) => request('/api/auth/login', {method:'POST', body:JSON.stringify({email, password})})
+  };
   root.ICPostingApi = {
+    me: () => request('/api/partner/me'),
     attendance: () => request('/api/partner/attendance'),
     placements: () => request('/api/partner/placements'),
     applications: () => request('/api/partner/applications'),
@@ -32,10 +36,13 @@
     logout: async () => { try { await request('/api/auth/partner/session', {method: 'DELETE'}); } finally { sessionStorage.removeItem('ic_postings_token'); } }
   };
   root.ICStudentApi = {
+    placementDocuments: () => request('/api/student/placement/documents', {studentAuth:true}),
+    placementDocument: kind => request('/api/student/placement/documents/'+encodeURIComponent(kind), {studentAuth:true}),
     reports: () => request('/api/student/reports', {studentAuth:true}),
     submitReport: (id,raw) => request('/api/student/tasks/'+encodeURIComponent(id)+'/report', {method:'POST',body:JSON.stringify({raw}),studentAuth:true}),
     tasks: () => request('/api/student/tasks', {studentAuth:true}),
     attendance: () => request('/api/student/attendance', {studentAuth:true}),
+    attendanceChallenge: () => request('/api/student/attendance/challenge', {method:'POST',studentAuth:true}),
     clock: data => request('/api/student/attendance/clock', {method:'POST',body:JSON.stringify(data),studentAuth:true}),
     explainAttendance: data => request('/api/student/attendance/explanation', {method:'PUT',body:JSON.stringify(data),studentAuth:true}),
     placements: () => request('/api/student/placements', {studentAuth:true}),
@@ -49,7 +56,24 @@
     logout: async () => { try { await request('/api/auth/student/session', {method: 'DELETE', studentAuth: true}); } finally { sessionStorage.removeItem('ic_student_token'); } }
   };
   const coordinatorRequest = (path, options = {}) => request(path, {...options, coordinatorAuth: true});
+  const vaultRequest=(path,options={})=>{
+    const role=JSON.parse(localStorage.getItem('ic_session') || '{}').role;
+    const route=role==='partnercompany'?'partner':role;
+    if(!['student','coordinator','partner'].includes(route))throw new Error('Sign in to open this vault.');
+    return request('/api/'+route+'/vault/letters'+path,{...options,studentAuth:route==='student',coordinatorAuth:route==='coordinator'});
+  };
+  root.ICVaultApi={
+    list:(company,code)=>vaultRequest('?company='+encodeURIComponent(company)+'&class_code='+encodeURIComponent(code)),
+    upload:data=>vaultRequest('',{method:'POST',body:JSON.stringify(data)}),
+    read:id=>vaultRequest('/'+encodeURIComponent(id)),
+    remove:id=>vaultRequest('/'+encodeURIComponent(id),{method:'DELETE'})
+  };
+  root.ICNotificationApi = {
+    list: role => request('/api/'+role+'/notifications',{studentAuth:role==='student',coordinatorAuth:role==='coordinator'}),
+    read: (role,ids) => request('/api/'+role+'/notifications/read',{method:'POST',body:JSON.stringify({ids}),studentAuth:role==='student',coordinatorAuth:role==='coordinator'})
+  };
   root.ICCoordinatorApi = {
+    audit: code => coordinatorRequest('/api/coordinator/audit?class_code='+encodeURIComponent(code)),
     register: data => coordinatorRequest('/api/auth/coordinator/register', {method: 'POST', body: JSON.stringify(data)}),
     login: (email, password) => coordinatorRequest('/api/auth/coordinator/login', {method: 'POST', body: JSON.stringify({email, password})}),
     state: () => coordinatorRequest('/api/coordinator/state'),
@@ -60,6 +84,9 @@
     deleteTask: id => coordinatorRequest('/api/coordinator/tasks/'+encodeURIComponent(id), {method:'DELETE'}),
     attendance: () => coordinatorRequest('/api/coordinator/attendance'),
     reviewAttendance: data => coordinatorRequest('/api/coordinator/attendance/review', {method:'PUT',body:JSON.stringify(data)}),
+    holidays: code => coordinatorRequest('/api/coordinator/holidays?class_code='+encodeURIComponent(code)),
+    addHoliday: data => coordinatorRequest('/api/coordinator/holidays', {method:'POST',body:JSON.stringify(data)}),
+    deleteHoliday: (code,date) => coordinatorRequest('/api/coordinator/holidays/'+encodeURIComponent(code)+'/'+encodeURIComponent(date), {method:'DELETE'}),
     placements: () => coordinatorRequest('/api/coordinator/placements'),
     confirmDeployment: (id, data) => coordinatorRequest('/api/coordinator/applications/' + encodeURIComponent(id) + '/deployment', {method:'POST',body:JSON.stringify(data)}),
     applications: () => coordinatorRequest('/api/coordinator/applications'),

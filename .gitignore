@@ -1,11 +1,63 @@
+# OS files
 .DS_Store
 Thumbs.db
-node_modules/
-.venv/
-ai-service/models/
-ai-service/onet_data/
+desktop.ini
+
+# Editors and IDEs
 .vscode/
 .idea/
-*.log
+*.swp
+*.swo
+*~
+
+# Dependencies and virtual environments
+node_modules/
+.venv/
+venv/
+
+# Python build and cache output
 __pycache__/
 *.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# Large local AI assets (downloaded by setup scripts, see ai-service/README.md)
+ai-service/models/
+ai-service/onet_data/
+
+# Real human-rated benchmark pairs are research data: keep them out of Git (the synthetic sample stays tracked)
+ai-service/evaluation_data/
+
+# Secrets and local credentials
+.local/
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Database dumps and backups (schema.sql is source and stays tracked)
+backups/
+*.dump
+*.sql.gz
+*.bak
+
+# Logs and temporary files
+*.log
+*.tmp
+~$*
+
+# AI agent files (kept local, not published)
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+PLAN.md
+AGENTS.md
+.codex/

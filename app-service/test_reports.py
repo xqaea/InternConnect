@@ -27,7 +27,8 @@ class ReportTests(TestCase):
     def test_submit_is_student_scoped_and_bullet_is_server_derived(self):
         cursor=self.submit()
         self.assertEqual(cursor.execute.call_args_list[0].args[1],('task-test','OWNED'))
-        self.assertEqual(cursor.execute.call_args.args[1],('task-test',2,'Tested the API.','Tested the API.'))
+        self.assertEqual(cursor.execute.call_args_list[2].args[1],('task-test',2,'Tested the API.','Tested the API.'))
+        self.assertEqual(cursor.execute.call_args.args[1],('student',2,2,'Report submitted','Success','task-test'))
 
     def test_only_revision_requests_allow_resubmission(self):
         self.submit('Needs Revision')
@@ -42,7 +43,8 @@ class ReportTests(TestCase):
     def test_review_and_grade_are_owned_and_bounded(self):
         cursor=self.decide(status='Verified',score=100)
         self.assertEqual(cursor.execute.call_args_list[0].args[1],('task-test',4))
-        self.assertEqual(cursor.execute.call_args.args[1],(100,'','task-test',2))
+        self.assertEqual(cursor.execute.call_args_list[3].args[1],(100,'','task-test',2))
+        self.assertEqual(cursor.execute.call_args.args[1],('coordinator',4,2,'Report Verified and graded (100.0 points)','Success','task-test'))
         with self.assertRaises(HTTPException) as result:
             self.decide(score=101)
         self.assertEqual(result.exception.status_code,400)

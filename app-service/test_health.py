@@ -22,10 +22,10 @@ class HealthTests(unittest.TestCase):
         cursor = MagicMock()
         self.assertEqual(self.check(cursor), {'status': 'ok', 'database': 'mysql'})
         queries = [call.args[0] for call in cursor.execute.call_args_list]
-        for table in ('companies', 'partner_accounts', 'posting_sessions', 'job_postings',
+        for table in ('audit_events', 'companies', 'partner_accounts', 'posting_sessions', 'job_postings',
                       'student_batches', 'student_accounts', 'student_sessions',
                       'coordinator_accounts', 'coordinator_batches', 'coordinator_sessions',
-                      'login_attempts', 'partner_profiles', 'student_resumes', 'internship_applications', 'official_placements', 'student_attendance', 'classwork_tasks', 'narrative_reports'):
+                      'login_attempts', 'partner_profiles', 'student_resumes', 'internship_applications', 'official_placements', 'student_attendance', 'classwork_tasks', 'narrative_reports', 'notification_receipts', 'vault_letters'):
             self.assertIn(f'SELECT * FROM {table} LIMIT 0', queries)
 
     def test_missing_account_table_cannot_report_healthy(self):

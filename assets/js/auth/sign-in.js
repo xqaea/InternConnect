@@ -20,7 +20,7 @@ function showLoginError(message){
 function refreshLoginLockout(){
     const button = document.getElementById('loginSubmitBtn');
     if(!button) return;
-    const state = window.ICLoginLockout.status(currentRole(), document.getElementById('loginEmail').value);
+    const state = window.ICLoginLockout.status('login', document.getElementById('loginEmail').value);
     button.disabled = loginSubmitting || state.seconds > 0;
     button.classList.toggle('opacity-60', button.disabled);
     button.classList.toggle('cursor-not-allowed', button.disabled);
@@ -38,16 +38,13 @@ if(document.getElementById('loginSubmitBtn')){
     document.getElementById('loginEmail').addEventListener('input', () => {
         document.getElementById('loginError').classList.add('hidden'); refreshLoginLockout();
     });
-    document.querySelectorAll('#roleSwitcher .role-btn').forEach(button => button.addEventListener('click', () => {
-        document.getElementById('loginError').classList.add('hidden'); refreshLoginLockout();
-    }));
     window.addEventListener('storage', refreshLoginLockout);
 }
 
-// Local prototype demos use explicit credentials; unknown accounts are failed logins.
+// The server identifies the account type and enforces the shared email lockout.
 on('loginSubmitBtn', 'click', async () => {
     if(loginSubmitting) return;
-    const role = currentRole();
+    const role = 'login';
     const email = document.getElementById('loginEmail').value.trim().toLowerCase();
     const pw = document.getElementById('loginPassword').value;
     const errorBox = document.getElementById('loginError');
@@ -59,62 +56,33 @@ on('loginSubmitBtn', 'click', async () => {
         if(!state.seconds) showLoginError('Incorrect email or password. ' + (remaining ?? (5 - state.failures)) + ' attempts remaining.');
         refreshLoginLockout();
     };
-    const user = getUsers().find(u => u.role === role && u.email.toLowerCase() === email);
-    const isDemo = !user && email === 'demo@sjc.edu.ph' && pw === 'DemoAccess2026!';
     loginSubmitting = true;
     errorBox.classList.add('hidden');
     setLoginLoading(true);
     refreshLoginLockout();
     try{
-        sessionStorage.removeItem('ic_postings_token');
-        if(!isDemo){
-            try{
-                const api = {student: window.ICStudentApi, coordinator: window.ICCoordinatorApi, partnercompany: window.ICPostingApi}[role];
-                const result = await api.login(email, pw);
-                limits.reset(role, email);
-                sessionStorage.removeItem('ic_student_token');
-                sessionStorage.removeItem('ic_coordinator_token');
-                sessionStorage.setItem({student: 'ic_student_token', coordinator: 'ic_coordinator_token', partnercompany: 'ic_postings_token'}[role], result.token);
-                startSession(result.user);
-                loginNavigating = true;
-                return;
-            }catch(error){
-                if(error.status === 429){
-                    limits.block(role, email, error.retryAfter || 300);
-                    refreshLoginLockout();
-                    return;
-                }
-                if(error.status === 401){ failure(error.remainingAttempts); return; }
-                if(error.status === 422){
-                    showLoginError('Invalid email or password');
-                    return;
-                }
-                if(error.status === 403) limits.reset(role, email);
-                if(error.status && error.status !== 503){
-                    showLoginError(error.message);
-                    return;
-                }
-                // Outages are not incorrect credentials and must not consume attempts.
+        try{
+            const result = await window.ICAuthApi.login(email, pw);
+            const tokenKey = {student:'ic_student_token', coordinator:'ic_coordinator_token', partnercompany:'ic_postings_token'}[result.user?.role];
+            if(!tokenKey || !result.token) throw new Error('Invalid sign-in response.');
+            limits.reset(role, email);
+            ['ic_student_token','ic_coordinator_token','ic_postings_token'].forEach(key => sessionStorage.removeItem(key));
+            sessionStorage.setItem(tokenKey, result.token);
+            startSession(result.user);
+            loginNavigating = true;
+        }catch(error){
+            if(error.status === 429){
+                limits.block(role, email, error.retryAfter || 300);
+                refreshLoginLockout();
+            }else if(error.status === 401){ failure(error.remainingAttempts); }
+            else if(error.status === 422){ showLoginError('Invalid email or password'); }
+            else if(error.status && error.status !== 503){
+                if(error.status === 403 || error.status === 409) limits.reset(role, email);
+                showLoginError(error.message);
+            }else{
                 showLoginError('Sign-in service is unavailable. Please try again shortly.');
-                return;
             }
         }
-        sessionStorage.removeItem('ic_student_token');
-        sessionStorage.removeItem('ic_coordinator_token');
-        if(!isDemo && (!user || user.password !== pw)){
-            failure();
-            return;
-        }
-        limits.reset(role, email);
-        errorBox.classList.add('hidden');
-        if(user && user.status === 'pending'){
-            return showToast('Your request to join the class is still waiting for coordinator approval.', 'warn');
-        }
-        const demo = {role, email: email || 'demo@sjc.edu.ph', name: 'Demo User', program: 'BS Computer Science', theme: 'sky', school: 'PHINMA SJCDC', classCode: 'PHINMA-CS-2026'};
-        if(role === 'student') Object.assign(demo, {name: 'Alex V. Santos', status: 'intern', hours: 320, ojtHours: 320});
-        if(role === 'partnercompany') Object.assign(demo, {name: 'Sarah Geronimo', company: 'Brightpath Software'});
-        startSession(user || demo);
-        loginNavigating = true;
     }finally{
         loginSubmitting = false;
         if(!loginNavigating) setLoginLoading(false);
@@ -128,8 +96,11 @@ window.addEventListener('pageshow', event => {
 // Links To Other Screens
 on('goToRegisterLink', 'click', () => {
     sessionStorage.removeItem('ic_reg');
-    saveDraft({role: currentRole()});
-    goTo('register1');
+    const choices = document.getElementById('registrationChoices');
+    if(choices){
+        const hidden = choices.classList.toggle('hidden');
+        document.getElementById('goToRegisterLink').setAttribute('aria-expanded', String(!hidden));
+    }
 });
 on('forgotPasswordLink', 'click', () => goTo('forgotpw'));
 on('goToLoginLink', 'click', () => goTo('login'));

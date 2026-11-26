@@ -3,13 +3,14 @@ import base64
 import json
 import re
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from db import database
 from student_auth import student
 
 router = APIRouter(prefix='/api/student')
 FIELDS = {'ed-name', 'ed-phone', 'ed-email', 'ed-objective', 'ed-workexp',
-          'ed-education', 'ed-thesisTitle', 'ed-thesisRole', 'ed-volunteer', 'ed-awards'}
+          'ed-education', 'ed-educationProgram', 'ed-educationSchool',
+          'ed-thesisTitle', 'ed-thesisRole', 'ed-volunteer', 'ed-awards'}
 FIELDS.update('ed-'+prefix+kind for prefix in ('work','education','project') for kind in ('Start','End'))
 
 
@@ -18,8 +19,30 @@ class CustomSection(BaseModel):
     text: str = Field(max_length=10000)
 
 
+class WorkExperience(BaseModel):
+    text: str = Field(min_length=1, max_length=10000)
+    position: str = Field(default='', max_length=200)
+    company: str | None = Field(default=None, max_length=200)
+    location: str = Field(default='', max_length=200)
+    bullets: list[str] = Field(default_factory=list, max_length=100)
+    start: str = Field(default='', max_length=7)
+    end: str = Field(default='', max_length=7)
+
+    @model_validator(mode='after')
+    def valid_dates(self):
+        if not self.text.strip():
+            raise ValueError('Add an experience description.')
+        if any(not text.strip() or len(text)>2000 for text in self.bullets):
+            raise ValueError('Each experience bullet must contain 1 to 2000 characters.')
+        if self.start or self.end:
+            if not all(re.fullmatch(r'\d{4}-(0[1-9]|1[0-2])', date) for date in (self.start, self.end)) or self.end < self.start:
+                raise ValueError('Choose valid experience months in chronological order.')
+        return self
+
+
 class Resume(BaseModel):
     fields: dict[str, str] = Field(default_factory=dict)
+    workExperiences: list[WorkExperience] | None = Field(default=None, max_length=50)
     soft: list[str] = Field(default_factory=list, max_length=200)
     hard: list[str] = Field(default_factory=list, max_length=200)
     thesisOn: bool = False

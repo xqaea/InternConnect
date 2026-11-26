@@ -23,7 +23,13 @@ def main():
     partner = commands.add_parser('add-partner')
     for field in ('email', 'name', 'company', 'batch'):
         partner.add_argument('--' + field, required=True)
+    dev = commands.add_parser('dev-accounts', help='create one local test account per role (local database only)')
+    dev.add_argument('--reset-passwords', action='store_true', help='give the existing dev accounts new passwords')
     args = parser.parse_args()
+    if args.command == 'dev-accounts':
+        from dev_accounts import run
+        run(reset=args.reset_passwords)
+        return
     if args.command == 'init':
         config = settings()
         name = config.pop('database')

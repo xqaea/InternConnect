@@ -15,6 +15,9 @@ window.syncCoordinatorState = async function(){
     });
     result.batches.forEach(batch => { classes[batch.code] = {...batch, databaseBatch: true}; });
     localStorage.setItem('ic_classes', JSON.stringify(classes));
+    // Holidays and no-work days per batch: they decide which scheduled days count as absences
+    if(typeof cacheDatabaseHolidays === 'function')
+        await Promise.all(result.batches.map(async batch => cacheDatabaseHolidays(batch.code, (await window.ICCoordinatorApi.holidays(batch.code)).holidays)));
     const codes = new Set(result.batches.map(batch => batch.code));
     const users = getUsers();
     const students = result.students.map(student => {
@@ -33,5 +36,6 @@ window.syncCoordinatorState = async function(){
     localStorage.setItem('ic_session', JSON.stringify({...oldSession, ...result.user}));
     if(!codes.has(localStorage.getItem('ic_active_class')) && result.batches.length) setActiveClass(result.batches[0].code);
     refreshHeaderCode();
+    await window.ICNotifications.load();
     return result;
 };

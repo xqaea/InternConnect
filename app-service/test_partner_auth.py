@@ -12,6 +12,20 @@ from test_login_lockout import Store
 
 
 class PartnerTests(TestCase):
+    def test_partner_inherits_the_linked_batch_theme(self):
+        row = dict(email='partner@example.com', name='Partner', company='Company',
+                   class_code='OWNED', status='active', theme='emerald')
+        self.assertEqual(auth.public_partner(row)['theme'], 'emerald')
+        self.assertIn('LEFT JOIN student_batches b ON b.code=c.class_code', auth.PARTNER_QUERY)
+        self.assertIn("COALESCE(b.theme,'sky') AS theme", auth.PARTNER_QUERY)
+        row['theme'] = 'rose'
+        self.assertEqual(auth.public_partner(row)['theme'], 'rose')
+
+    def test_legacy_partner_without_a_linked_theme_uses_default(self):
+        row = dict(email='partner@example.com', name='Partner', company='Company',
+                   class_code='LEGACY', status='active')
+        self.assertEqual(auth.public_partner(row)['theme'], 'sky')
+
     def registration(self):
         return auth.PartnerRegistration(email=' Partner@example.com ', password='StrongPassword123!',
             name='Test Partner', classCode='OWNED', program='Technology',

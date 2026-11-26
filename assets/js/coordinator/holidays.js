@@ -19,24 +19,41 @@ function holidayModal(){
             const h = PH_HOLIDAYS_2026.find(x => x[0] === e.target.value);
             document.getElementById('holDate').value = h[0]; document.getElementById('holName').value = h[1]; document.getElementById('holType').value = h[2];
         });
-        m.addEventListener('click', (e) => {
+        m.addEventListener('click', async (e) => {
             const b = e.target.closest('[data-hol]');
             if(!b) return;
             if(b.dataset.hol === 'close'){ closeModal(m); return; }
-            const list = getHolidays();
-            if(b.dataset.hol === 'del'){
-                const h = list.find(x => x.date === b.dataset.date);
-                saveHolidays(list.filter(x => x.date !== b.dataset.date));
-                logAudit('Removed ' + h.name + ' (' + h.date + ') from the holidays of the batch');
-            }
-            if(b.dataset.hol === 'add'){
-                const date = document.getElementById('holDate').value, name = document.getElementById('holName').value.trim(), type = document.getElementById('holType').value;
-                if(!date || !name){ showToast('Pick a date and add a name.', 'warn'); return; }
-                if(list.some(x => x.date === date)){ showToast(formatDate(date) + ' is already in the list.', 'warn'); return; }
-                saveHolidays(list.concat({date, name, type}));
-                logAudit('Added ' + name + ' (' + date + ', ' + type.toLowerCase() + ') to the holidays of the batch');
-                document.getElementById('holDate').value = ''; document.getElementById('holName').value = '';
-            }
+            const list = getHolidays(), database = isDatabaseCoordinator(), code = activeClassCode();
+            // Database batches: the account API stores the day, removes absences it replaces and audits the change.
+            const refresh = async () => {
+                cacheDatabaseHolidays(code, (await window.ICCoordinatorApi.holidays(code)).holidays);
+                cacheDatabaseAttendance((await window.ICCoordinatorApi.attendance()).attendance);
+            };
+            b.disabled = true;
+            try{
+                if(b.dataset.hol === 'del'){
+                    const h = list.find(x => x.date === b.dataset.date);
+                    if(database){ await window.ICCoordinatorApi.deleteHoliday(code, b.dataset.date); await refresh(); }
+                    else{
+                        saveHolidays(list.filter(x => x.date !== b.dataset.date));
+                        logAudit('Removed ' + h.name + ' (' + h.date + ') from the holidays of the batch');
+                    }
+                }
+                if(b.dataset.hol === 'add'){
+                    const date = document.getElementById('holDate').value, name = document.getElementById('holName').value.trim(), type = document.getElementById('holType').value;
+                    if(!date || !name){ showToast('Pick a date and add a name.', 'warn'); return; }
+                    if(list.some(x => x.date === date)){ showToast(formatDate(date) + ' is already in the list.', 'warn'); return; }
+                    if(database){ await window.ICCoordinatorApi.addHoliday({classCode: code, date, name, type}); await refresh(); }
+                    else{
+                        saveHolidays(list.concat({date, name, type}));
+                        logAudit('Added ' + name + ' (' + date + ', ' + type.toLowerCase() + ') to the holidays of the batch');
+                    }
+                    document.getElementById('holDate').value = ''; document.getElementById('holName').value = '';
+                }
+            }catch(error){
+                showToast(error.message || 'Could not save the holiday. Please try again.', 'warn');
+                return;
+            }finally{ b.disabled = false; }
             fillHolidayModal();
             renderAttendance();
         });

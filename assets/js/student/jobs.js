@@ -3,8 +3,15 @@ function initStudentJobs({currentUserRecord, isAlumni, session, show, hide, toas
   let jobSort = 'match';
   let applicationSubmitting = false;
   let aiMatchScores = new Map();
+  // 'loading' until the AI service answers, then 'ready' or 'unavailable'. No other formula fills in for it.
+  let aiState = 'loading';
+  const aiClient = () => window.ICCore.aiMatching;
   let studentLocation = null;
   let jobDistances = new Map();
+  // Radius pre-filter in km (0 = off). Distance only filters and breaks ties; it is never part of the score.
+  let radiusKm = 0;
+  // Occupation suggestions for the below-threshold fallback, cached per skill list and threshold.
+  let fallbackCareers = {key: '', status: 'idle', items: []};
 
   function cleanJobLocation(location){
     return String(location || '').replace(/\s*[·•]\s*[\d.]+\s*km\s+(?:away|from campus)\s*/i, '').trim();
@@ -65,6 +72,58 @@ function initStudentJobs({currentUserRecord, isAlumni, session, show, hide, toas
     }
   }
 
+  const isRemoteType = job => /\bRemote\b/i.test((job && job.type) || '');
+  // Postings the student could apply to: right type for their stage, inside the radius when one is set.
+  // The course/arrangement dropdowns are display filters and do not decide whether the fallback applies.
+  function eligibleJobIds(){
+    const alumni = isAlumni(currentUserRecord());
+    return Object.entries(jobDetails)
+      .filter(([id, job]) => isInternshipJob(job) !== alumni && aiClient().withinRadius(jobDistances.get(id), radiusKm, isRemoteType(job)))
+      .map(([id]) => id);
+  }
+  function resumeSkillsForDisplay(){
+    const me = session() || {}, resume = getJSON('ic_resume', {})[jmKey(me)] || {};
+    const own = [...(resume.hard || []), ...(resume.soft || [])].map(skill => String(skill).trim()).filter(Boolean);
+    return [...new Set(own.length ? own : jmSkills(me))];
+  }
+  // Below-threshold fallback: when the service answered and no eligible posting reaches tau, show the student's key
+  // skills, the closest O*NET occupations, and outbound links. Skills only are sent; nothing is scraped or fetched
+  // from the external platforms.
+  function updateFallback(visibleCount){
+    const box = document.getElementById('fallbackAlert'); if(!box) return;
+    const ai = aiClient(), skills = resumeSkillsForDisplay();
+    const threshold = Number.isFinite(aiMatchScores.threshold) ? aiMatchScores.threshold : ai.DEFAULT_THRESHOLD;
+    const wrap = body => '<div class="flex items-start gap-2.5"><i class="fa-solid fa-circle-info text-slate-400 mt-0.5"></i><div class="min-w-0">' + body + '</div></div>';
+    const needed = ai.fallbackNeeded({state: aiState, hasSkills: skills.length > 0, scores: aiMatchScores, ids: eligibleJobIds(), threshold});
+    if(!needed){
+      if(visibleCount === 0){
+        box.innerHTML = wrap('<div class="text-[12.5px] font-semibold text-slate-700">No postings match the selected filters</div><p class="text-[12px] text-slate-500 mt-1">Change or clear a filter to see more postings.</p>');
+        box.classList.remove('hidden');
+      }else box.classList.add('hidden');
+      return;
+    }
+    const key = skills.join('|') + '|' + threshold;
+    if(fallbackCareers.key !== key){
+      fallbackCareers = {key, status: 'loading', items: []};
+      ai.fetchCareers(skills, 3)
+        .then(items => ({key, status: 'ready', items}), () => ({key, status: 'failed', items: []}))
+        .then(next => { if(fallbackCareers.key === key){ fallbackCareers = next; filterJobs(); } });
+    }
+    const chips = skills.slice(0, 8).map(skill => '<span class="tag-chip">' + esc(skill) + '</span>').join(' ');
+    const careers = fallbackCareers.status === 'loading'
+      ? '<p class="text-[12px] text-slate-400 mt-1">Finding occupations that align with your skills…</p>'
+      : fallbackCareers.items.length
+        ? '<ul class="mt-1 space-y-1">' + fallbackCareers.items.map(item => '<li class="text-[12.5px] text-slate-700">' + esc(item.title) + ' <span class="text-slate-400">· ' + esc(String(item.alignment_percent)) + '% alignment</span></li>').join('') + '</ul>'
+        : '<p class="text-[12px] text-slate-400 mt-1">Occupation suggestions are not available right now.</p>';
+    const links = ai.EXTERNAL_PLATFORMS.map(platform => '<a href="' + esc(platform.url) + '" target="_blank" rel="noopener noreferrer" class="font-medium text-sky-600 hover:underline">' + esc(platform.name) + '</a>').join(' · ');
+    box.innerHTML = wrap('<div class="text-[12.5px] font-semibold text-slate-700">No posting reaches the ' + Math.round(threshold * 100) + '% similarity threshold yet</div>'
+      + '<p class="text-[11px] font-semibold text-slate-500 mt-2 mb-1">Your key skills</p><div class="flex flex-wrap gap-1">' + chips + '</div>'
+      + '<p class="text-[11px] font-semibold text-slate-500 mt-3">Occupations that align with your skills (O*NET)</p>' + careers
+      + '<p class="text-[12px] text-slate-500 mt-3">You can also look for openings on ' + links + '.</p>'
+      + '<p class="text-[10.5px] text-slate-400 mt-2">General career directions from U.S. O*NET data, not current vacancies or hiring probabilities.</p>');
+    box.classList.remove('hidden');
+  }
+
   function filterJobs(){
     const list=document.getElementById('jobList'); if(!list)return;
     const user=currentUserRecord(); const alumni=isAlumni(user);
@@ -76,20 +135,20 @@ function initStudentJobs({currentUserRecord, isAlumni, session, show, hide, toas
       const courseOk=!course||card.dataset.course===course;
       const typeOk=alumni ? (card.dataset.type!=='Internship' && (!type || card.dataset.type===type)) : card.dataset.type==='Internship';
       const arrangeOk=!arrangement||card.dataset.arrangement===arrangement;
-      const ok=courseOk&&typeOk&&arrangeOk;
+      const radiusOk=aiClient().withinRadius(parseFloat(card.dataset.km), radiusKm, card.dataset.arrangement==='Remote');
+      const ok=courseOk&&typeOk&&arrangeOk&&radiusOk;
       card.classList.toggle('hidden',!ok); if(ok)visible++;
     });
-    document.getElementById('fallbackAlert')?.classList.toggle('hidden',visible!==0);
+    updateFallback(visible);
     document.getElementById('typeFilter')?.classList.toggle('hidden',!alumni);
   }
 
   function openJobModal(id){
     const j=jobDetails[id]; if(!j)return;
     const match=jobMatch(j,session()||{}), aiScore=aiMatchScores.get(id);
-    const displayScore=Number.isFinite(aiScore)?Math.round(aiScore*100):match.score;
     const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
     set('jobModalTitle',j.title);set('jobModalCompany',j.company);set('jobModalType',j.type);set('jobModalSalary',j.salary);set('jobModalDescription',j.description);set('jobModalDeadline',j.deadline);
-    const score=document.getElementById('jobModalScore');if(score)score.innerHTML='<i class="fa-solid fa-wand-magic-sparkles mr-1"></i>'+displayScore+'% match';
+    const score=document.getElementById('jobModalScore');if(score){score.title=aiClient().SCORE_NOTE;score.innerHTML='<i class="fa-solid fa-wand-magic-sparkles mr-1"></i>'+esc(Number.isFinite(aiScore)?aiClient().percentText(aiScore)+' match':aiClient().badgeText(aiScore,aiState));}
     const loc=document.getElementById('jobModalLocation');if(loc)loc.innerHTML='<i class="fa-solid fa-location-dot mr-1"></i>'+esc(formatJobLocation(id,j));
     const req=document.getElementById('jobModalRequirements');if(req)req.innerHTML=j.requirements.map(x=>'<li>'+esc(x)+'</li>').join('');
     const tags=document.getElementById('jobModalSkillTags');if(tags)tags.innerHTML=match.skills.map(([n,m])=>(m ? '<span class="tag-chip matched"><i class="fa-solid fa-check"></i>'+esc(n)+'</span>' : '<span class="tag-chip gap">'+esc(n)+' <span class="chip-note">gap</span></span>')).join('');
@@ -104,13 +163,12 @@ function initStudentJobs({currentUserRecord, isAlumni, session, show, hide, toas
     cards.forEach(card => {
       const j = jobDetails[card.dataset.job]; if(!j) return;
       const m = jobMatch(j, me), aiScore = aiMatchScores.get(card.dataset.job);
-      const score = Number.isFinite(aiScore) ? aiScore : m.score / 100;
-      card.dataset.score = score;
+      card.dataset.score = Number.isFinite(aiScore) ? String(aiScore) : '';
       const distance = jobDistances.get(card.dataset.job);
       card.dataset.km = Number.isFinite(distance) ? String(distance) : 'unavailable';
       const location = card.querySelector('[data-job-location]');
       if(location) location.textContent = formatJobLocation(card.dataset.job, j);
-      const badge = card.querySelector('.fa-wand-magic-sparkles')?.parentElement; if(badge) badge.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-1"></i>' + Math.round(score * 100) + '%';
+      const badge = card.querySelector('.fa-wand-magic-sparkles')?.parentElement; if(badge){ badge.title = aiClient().SCORE_NOTE; badge.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-1"></i>' + esc(aiClient().badgeText(aiScore, aiState)); }
       const chips = card.querySelector('.tag-chip')?.parentElement; if(chips) chips.innerHTML = chipHtml(m.skills);
       const btn = card.querySelector('.apply-btn'), done = jmApplied(card.dataset.job, me);
       if(btn){ btn.textContent = done ? 'Applied' : 'Apply Now'; btn.disabled = done; btn.classList.toggle('opacity-60', done); btn.classList.toggle('cursor-default', done); }
@@ -120,7 +178,10 @@ function initStudentJobs({currentUserRecord, isAlumni, session, show, hide, toas
         const dx = Number(x.dataset.km), dy = Number(y.dataset.km);
         return (Number.isFinite(dx) ? dx : Infinity) - (Number.isFinite(dy) ? dy : Infinity);
       }
-      return Number(y.dataset.score) - Number(x.dataset.score);
+      // Similarity decides the order. Distance (when the student has shared a location) only breaks ties at the same
+      // displayed percentage. Unscored cards tie at the bottom, and the stable sort keeps their posted order.
+      const score = card => parseFloat(card.dataset.score), km = card => parseFloat(card.dataset.km);
+      return aiClient().rankCompare(score(x), km(x), score(y), km(y));
     }).forEach(c => list.insertBefore(c, document.getElementById('fallbackAlert')));
     const tbody = [...document.querySelectorAll('h2')].find(h => h.textContent.trim() === 'Application Status')?.closest('.bg-white')?.querySelector('tbody');
     if(!tbody) return;
@@ -133,19 +194,21 @@ function initStudentJobs({currentUserRecord, isAlumni, session, show, hide, toas
   async function loadAiMatchScores(){
     const me = session() || {};
     const studentSkills = jmSkills(me).map(skill => String(skill).trim()).filter(Boolean);
-    const postings = Object.entries(jobDetails).map(([id, job]) => ({
-      id,
-      ...(job.onet_soc_code ? {onet_soc_code: job.onet_soc_code} : {}),
-      required_skills: (job.skills || []).map(skill => Array.isArray(skill) ? skill[0] : skill).filter(Boolean)
-    })).filter(posting => posting.required_skills.length);
-    if(!studentSkills.length || !postings.length || !window.ICCore?.aiMatching?.rankJobs) return;
+    const postings = aiClient().buildPostings(jobDetails);
+    if(!studentSkills.length){ aiState = 'unavailable'; renderJobCards(); filterJobs(); return; }
+    // No scoreable postings at all counts as "nothing matches", so the fallback still helps the student.
+    if(!postings.length){ aiMatchScores = new Map(); aiState = 'ready'; renderJobCards(); filterJobs(); return; }
     try{
-      aiMatchScores = await window.ICCore.aiMatching.rankJobs(studentSkills, postings);
-      renderJobCards();
+      aiMatchScores = await aiClient().rankJobs(studentSkills, postings);
+      aiState = 'ready';
     }catch(error){
-      // The existing local score remains available when the optional local AI service is stopped.
-      console.debug('Local AI matching is unavailable; keeping the existing match ranking.');
+      // No substitute formula: cards say the score is unavailable and keep their posted order.
+      aiMatchScores = new Map();
+      aiState = 'unavailable';
+      console.debug('Local AI matching is unavailable; scores are not shown.');
     }
+    renderJobCards();
+    filterJobs(); // re-evaluates the radius filter and the below-threshold fallback with the new scores
   }
   async function applyJob(id){
     const j = jobDetails[id], me = session() || {}; if(!j) return false;
@@ -193,6 +256,13 @@ function initStudentJobs({currentUserRecord, isAlumni, session, show, hide, toas
     document.getElementById('courseFilter')?.addEventListener('change',filterJobs);
     document.getElementById('typeFilter')?.addEventListener('change',filterJobs);
     document.getElementById('arrangementFilter')?.addEventListener('change',filterJobs);
+    // Radius pre-filter: asks for the student's location only when they pick a radius, and turns itself off if it is refused.
+    document.getElementById('radiusFilter')?.addEventListener('change',async e=>{
+      const km=Number(e.target.value)||0;
+      if(km&&!await sortByDistance()){ e.target.value=''; radiusKm=0; }
+      else radiusKm=km;
+      renderJobCards(); filterJobs();
+    });
     document.querySelectorAll('.job-card').forEach(card=>card.addEventListener('click',e=>{if(e.target.closest('.apply-btn'))return;openJobModal(card.dataset.job);}));
     document.querySelectorAll('.apply-btn').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();applyJob(btn.closest('.job-card')?.dataset.job);}));
     document.querySelectorAll('.sort-btn').forEach(btn=>btn.addEventListener('click',async()=>{
@@ -215,7 +285,7 @@ function jobCardHtml(id, j){
     return '<div class="job-card bg-white rounded-xl border border-slate-200 shadow-sm p-4 hover:border-sky-300 transition cursor-pointer" data-arrangement="' + esc(arrangement || '') + '" data-course="' + esc(j.course) + '" data-job="' + esc(id) + '" data-type="' + esc(kind) + '">'
       + '<div class="flex items-start justify-between gap-3"><div><div class="font-semibold text-slate-900">' + esc(j.title) + '</div>'
       + '<div class="text-[12px] text-slate-500 mt-0.5">' + esc(j.company) + ' · <i class="fa-solid fa-location-dot text-[10px]"></i> <span data-job-location>' + esc(cleanSeedJobLocation(j.location)) + '</span> · <span class="text-slate-400">' + esc(j.course) + ' · ' + esc(j.type) + '</span></div></div>'
-      + '<span class="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200 flex-shrink-0"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>0%</span></div>'
+      + '<span class="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200 flex-shrink-0"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>…</span></div>'
       + '<div class="flex flex-wrap gap-1.5 mt-3"><span class="tag-chip"></span></div>'
       + '<button class="apply-btn mt-3 text-[12.5px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-3.5 py-2 rounded-md transition">Apply Now</button></div>';
 }

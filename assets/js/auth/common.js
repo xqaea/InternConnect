@@ -25,7 +25,7 @@ function startSession(user, message){
     }));
     applyTheme(user.theme);
     const dest = dashboards[user.role];
-    if(dest) goTo(dest, message, 'success');
+    if(dest) goTo(dest, message, 'success', user.role);
     else showToast((message ? message + ' ' : '') + 'The ' + roleLabels[user.role] + ' dashboard is not built yet.', 'info');
 }
 

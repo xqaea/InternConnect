@@ -26,6 +26,7 @@ function updateRequestCounts(){
     document.getElementById('wrDeletionsCount').textContent = '(' + count('wr-deletions') + ')';
 }
 function updateSidebarRequestBadge(){
+    if(getJSON('ic_session',{})?.databaseAccount){window.ICNotifications?.badge();return;}
     const badge = document.getElementById('waitingBadge');
     if(!badge) return;
     const code = activeClassCode();
@@ -122,6 +123,7 @@ renderPendingLogsBanner();
 
 // Coordinator notifications: show real student task submissions, not deadline or sample-log reminders.
 function renderCoordinatorSubmissionNotifications(){
+    if(getJSON('ic_session',{})?.databaseAccount){window.ICNotifications.render();return;}
     if(isStudentPortal) return;
     const drop = document.querySelector('#notifDropdown .divide-y'), button = document.getElementById('notifBtn');
     if(!drop || !button) return;

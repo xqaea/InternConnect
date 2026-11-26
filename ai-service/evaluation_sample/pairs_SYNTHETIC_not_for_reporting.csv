@@ -1,0 +1,41 @@
+pair_id,source,student_skills,job_skills,rater_1,rater_2,rater_3
+s01,synthetic,Python; SQL; Git,Python; SQL; Version Control,5,5,4
+s02,synthetic,Java; Spring; MySQL,Java; Backend Development; Databases,5,4,4
+s03,synthetic,HTML; CSS; JavaScript,Front-End Development; JavaScript; CSS,5,5,5
+s04,synthetic,Software Testing; Documentation; SQL,Quality Assurance; Technical Writing; SQL,4,4,5
+s05,synthetic,Python; Data Analysis; Excel,Data Analysis; Excel; Reporting,5,4,4
+s06,synthetic,Networking; Troubleshooting; Linux,IT Support; Linux; Troubleshooting,4,5,4
+s07,synthetic,Customer Service; Front Desk; Communication,Guest Relations; Front Office; Communication,5,5,5
+s08,synthetic,Food Safety; Kitchen Operations; Teamwork,Food Preparation; Food Safety; Teamwork,5,4,5
+s09,synthetic,Event Planning; Coordination; Communication,Events Coordination; Banquet Service; Communication,4,4,4
+s10,synthetic,Housekeeping; Attention to Detail; Time Management,Room Attendant; Cleanliness Standards; Time Management,4,5,4
+s11,synthetic,Bartending; Customer Service; Cash Handling,Bar Service; Guest Service; Cash Handling,5,4,4
+s12,synthetic,Tour Guiding; Public Speaking; Customer Service,Tourism Services; Customer Service; Presentation,4,4,5
+s13,synthetic,Bookkeeping; Excel; Accounting,Accounting Assistant; Excel; Bookkeeping,5,5,4
+s14,synthetic,Marketing; Social Media; Canva,Social Media Marketing; Content Creation; Canva,5,4,5
+s15,synthetic,Sales; Negotiation; Customer Relations,Sales Support; Customer Relations; Negotiation,4,5,4
+s16,synthetic,Data Entry; MS Office; Filing,Administrative Support; MS Office; Data Entry,4,4,5
+s17,synthetic,Human Resources; Recruitment; Communication,HR Assistant; Recruitment; Interviewing,5,4,4
+s18,synthetic,Inventory; Purchasing; Excel,Inventory Control; Procurement; Excel,4,5,5
+s19,synthetic,Project Management; Scheduling; Communication,Project Coordination; Scheduling; Communication,4,4,4
+s20,synthetic,Customer Support; Email Handling; CRM,Customer Service; Email Support; CRM,5,5,4
+s21,synthetic,Python; SQL; Git,Food Preparation; Food Safety; Teamwork,1,1,1
+s22,synthetic,HTML; CSS; JavaScript,Bookkeeping; Accounting; Excel,1,2,1
+s23,synthetic,Java; Spring; MySQL,Room Attendant; Cleanliness Standards; Housekeeping,1,1,2
+s24,synthetic,Networking; Troubleshooting; Linux,Tourism Services; Customer Service; Presentation,2,1,1
+s25,synthetic,Customer Service; Front Desk; Communication,Java; Backend Development; Databases,2,2,1
+s26,synthetic,Food Safety; Kitchen Operations; Teamwork,Data Analysis; Excel; Reporting,1,2,2
+s27,synthetic,Event Planning; Coordination; Communication,Front-End Development; JavaScript; CSS,2,1,2
+s28,synthetic,Bartending; Customer Service; Cash Handling,Quality Assurance; Technical Writing; SQL,2,2,2
+s29,synthetic,Bookkeeping; Excel; Accounting,Guest Relations; Front Office; Communication,2,3,2
+s30,synthetic,Marketing; Social Media; Canva,IT Support; Linux; Troubleshooting,2,2,3
+s31,synthetic,Sales; Negotiation; Customer Relations,Python; Data Analysis; Excel,3,2,3
+s32,synthetic,Data Entry; MS Office; Filing,Kitchen Operations; Food Safety; Teamwork,1,2,1
+s33,synthetic,Python; SQL; Git,Data Analysis; Excel; Reporting,3,4,3
+s34,synthetic,Customer Service; Front Desk; Communication,Customer Support; Email Handling; CRM,4,3,4
+s35,synthetic,Marketing; Social Media; Canva,Sales Support; Customer Relations; Negotiation,3,3,4
+s36,synthetic,Human Resources; Recruitment; Communication,Administrative Support; MS Office; Data Entry,3,3,3
+s37,synthetic,Inventory; Purchasing; Excel,Accounting Assistant; Excel; Bookkeeping,4,3,3
+s38,synthetic,Event Planning; Coordination; Communication,Project Coordination; Scheduling; Communication,4,4,3
+s39,synthetic,HTML; CSS; JavaScript,Social Media Marketing; Content Creation; Canva,2,3,2
+s40,synthetic,Housekeeping; Attention to Detail; Time Management,Inventory Control; Procurement; Excel,2,2,3

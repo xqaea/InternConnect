@@ -2,6 +2,7 @@ const vaultModal = document.getElementById('vaultModal');
 let vaultCompany = '';
 let vaultFolder = null;       // null = vault root
 let replaceTargetId = null;
+let sharedVaultLoading=false,sharedVaultUnavailable=false;
 
 const VAULT_BTN = 'text-[10.5px] font-semibold px-2 py-1 rounded-md transition ';
 function vaultFolderRow(v, f){
@@ -18,14 +19,14 @@ function vaultFolderRow(v, f){
       + '</div>';
 }
 function vaultFileRow(v, f, showPath){
-    const owns = f.owner === VAULT_ME, mine = owns || f.unlocked === VAULT_ME, asker = f.pendingBy || 'coordinator';
+    const owns = f.sharedLetter?f.canEdit:f.owner === VAULT_ME, mine = owns || (!f.sharedLetter && f.unlocked === VAULT_ME), asker = f.pendingBy || 'coordinator';
     const icon = /\.(jpe?g|png)$/i.test(f.name) ? 'fa-file-image text-sky-500' : 'fa-file-pdf text-red-500';
     const meta = [esc(f.type), owns ? 'Uploaded by you' : VAULT_ME === 'hr' ? 'Uploaded by coordinator' : 'Uploaded by partner HR', formatDate(f.uploadedAt), 'v' + f.version];
     const ofIntern = internOfFolder(v, f.folder);
     if(ofIntern && getJSON('ic_checklist', {})[ofIntern + '|' + f.type]) meta.push('<span class="text-emerald-700 font-medium">Verified by coordinator</span>');
     if(showPath) meta.unshift('<i class="fa-solid fa-folder text-amber-400 mr-0.5"></i>' + esc(folderLabel(v, f.folder)));
     const pending = f.pending ? ' <span class="ml-1 text-[9.5px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">' + (owns && asker !== VAULT_ME ? (asker === 'hr' ? 'Partner' : 'Coordinator') + ' asks to ' + f.pending : (f.pending === 'delete' ? 'Delete' : 'Edit') + ' request pending') + '</span>' : '';
-    const actions = f.pending
+    let actions = f.pending
       ? (owns && asker !== VAULT_ME ? '<button data-file-act="approve-req" data-id="' + f.id + '" class="' + VAULT_BTN + 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100"><i class="fa-solid fa-check mr-1"></i>Approve</button>'
         + '<button data-file-act="decline-req" data-id="' + f.id + '" class="' + VAULT_BTN + 'text-slate-600 bg-slate-100 hover:bg-slate-200"><i class="fa-solid fa-xmark mr-1"></i>Decline</button>' : '')
       : mine
@@ -34,6 +35,8 @@ function vaultFileRow(v, f, showPath){
       + (owns ? '<button data-file-act="delete" data-id="' + f.id + '" class="' + VAULT_BTN + 'text-red-600 bg-red-50 hover:bg-red-100"><i class="fa-solid fa-trash mr-1"></i>Delete</button>' : '')
       : '<button data-file-act="request-edit" data-id="' + f.id + '" class="' + VAULT_BTN + 'text-slate-500 bg-slate-100 hover:bg-slate-200"><i class="fa-solid fa-lock mr-1"></i>Request edit</button>'
       + '<button data-file-act="request-delete" data-id="' + f.id + '" class="' + VAULT_BTN + 'text-slate-500 bg-slate-100 hover:bg-slate-200"><i class="fa-solid fa-lock mr-1"></i>Request delete</button>';
+    if(f.sharedLetter && !f.canEdit)actions='<span class="text-[10.5px] text-slate-400">View only</span>';
+    if(!f.sharedLetter && owns && f.data && window.ICSharedLetters?.enabled() && window.ICSharedLetters.kind(f.type))actions+='<button data-file-act="share" data-id="'+esc(f.id)+'" class="'+VAULT_BTN+'text-sky-700 bg-sky-50">Share letter</button>';
     return '<div class="flex flex-wrap items-center justify-between gap-2 border border-slate-200 rounded-md px-3 py-2.5">'
       + '<div class="flex items-center gap-2.5 min-w-0"><i class="fa-solid ' + icon + ' flex-shrink-0"></i>'
       +   '<div class="min-w-0"><div class="text-[12.5px] text-slate-700 truncate">' + esc(f.name) + pending + '</div>'
@@ -45,6 +48,7 @@ function vaultFileRow(v, f, showPath){
 const vaultEmpty = (text) => '<div class="text-center text-[12.5px] text-slate-400 border border-dashed border-slate-200 rounded-md py-8">' + text + '</div>';
 
 function renderVault(){
+    if(sharedVaultLoading || sharedVaultUnavailable){document.getElementById('vaultFileList').innerHTML=vaultEmpty(sharedVaultLoading?'Loading shared letters…':'Shared letters could not be loaded. Close and reopen the vault to retry.');return;}
     const v = ensureVault(vaultCompany);
     if(vaultFolder && !folderById(v, vaultFolder)) vaultFolder = null;
     const crumbs = [{id: '', name: vaultCompany}].concat(folderPath(v, vaultFolder));
@@ -77,8 +81,19 @@ function fillVaultFilters(v){
     document.getElementById('vaultUploadType').innerHTML = VAULT_TYPES.map(t => '<option>' + esc(t) + '</option>').join('');
 }
 
-function openVault(company, intern){
+async function openVault(company, intern){
     vaultCompany = company;
+    sharedVaultUnavailable=false;
+    sharedVaultLoading=!!window.ICSharedLetters?.enabled();
+    document.getElementById('vaultUploadBtn').disabled=sharedVaultLoading;
+    if(sharedVaultLoading){
+        vaultModal.classList.remove('hidden');renderVault();
+        try{await window.ICSharedLetters.load(company);}
+        catch(error){if(vaultCompany===company){sharedVaultUnavailable=true;showToast(error.message || 'Shared letters could not be loaded.','warn');}}
+        if(vaultCompany!==company)return;
+        sharedVaultLoading=false;
+        document.getElementById('vaultUploadBtn').disabled=sharedVaultUnavailable;
+    }
     const v = ensureVault(company);
     const internFolder = intern ? v.folders.find(f => f.intern === intern) : null;
     vaultFolder = internFolder ? internFolder.id : null;
@@ -152,6 +167,31 @@ if(vaultModal){
         const file = v.files.find(f => f.id === fileBtn.dataset.id);
         if(!file) return;
         const act = fileBtn.dataset.fileAct;
+        if(act==='share'){
+            try{
+                await window.ICSharedLetters.save(vaultCompany,file.folder,file.type,{name:file.name,data:file.data});
+                updateVault(vaultCompany,v=>{v.files=v.files.filter(item=>item.id!==file.id);});
+                renderVault();showToast('Letter shared with the company and student.','success');
+            }catch(error){showToast(error.message || 'The letter could not be shared.','warn');}
+            return;
+        }
+        if(file.sharedLetter){
+            try{
+                if(act==='download')downloadPrototypeFile(await window.ICSharedLetters.read(file));
+                if(act==='replace'){replaceTargetId=file.id;document.getElementById('vaultReplaceInput').click();return;}
+                if(act==='rename'){
+                    const name=(await askInput('Rename file',file.name) || '').trim();if(!name || name===file.name)return;
+                    const scan=await window.ICSharedLetters.read(file);
+                    await window.ICSharedLetters.save(file.company,file.folder,file.type,{...scan,name},file);
+                }
+                if(act==='delete'){
+                    if(!await askConfirm('Delete "'+file.name+'" from the shared vault?'))return;
+                    await window.ICSharedLetters.remove(file.company,file);
+                }
+                renderVault();
+            }catch(error){showToast(error.message || 'The letter could not be updated.','warn');}
+            return;
+        }
         if(act === 'download'){ downloadPrototypeFile(file); return; }
         if(act === 'replace'){ replaceTargetId = file.id; document.getElementById('vaultReplaceInput').click(); return; }
         if(act === 'rename'){
@@ -191,6 +231,12 @@ if(vaultModal){
         if(picked.size > 1500000){ showToast('Choose a file under 1.5 MB.', 'warn'); return; }
         let data;
         try { data = await readPrototypeFile(picked); } catch(err){ showToast('Could not read the file. Please try again.', 'warn'); return; }
+        const shared=ensureVault(vaultCompany).files.find(file=>file.id===replaceTargetId && file.sharedLetter);
+        if(shared){
+            try{await window.ICSharedLetters.save(shared.company,shared.folder,shared.type,{name:picked.name,data},shared);replaceTargetId=null;renderVault();showToast('Letter replaced for the company and student. The previous version is retained.','success');}
+            catch(error){showToast(error.message || 'The letter could not be replaced.','warn');}
+            return;
+        }
         updateVault(vaultCompany, vt => {
             const f = vt.files.find(x => x.id === replaceTargetId);
             f.history = (f.history || []).concat({name: f.name, data: f.data || '', version: f.version, uploadedAt: f.uploadedAt});
@@ -235,6 +281,18 @@ if(vaultModal){
         try { data = await readPrototypeFile(picked); } catch(err){ showToast('Could not read the file. Please try again.', 'warn'); return; }
         const folder = document.getElementById('vaultUploadFolder').value;
         const type = document.getElementById('vaultUploadType').value;
+        if(window.ICSharedLetters?.enabled() && window.ICSharedLetters.kind(type)){
+            const button=document.getElementById('vaultUploadSave');if(button.disabled)return;button.disabled=true;
+            try{
+                await window.ICSharedLetters.save(vaultCompany,folder,type,{name:picked.name,data});
+                input.value='';document.getElementById('vaultUploadForm').classList.add('hidden');vaultFolder=folder;
+                ['vaultSearch','vaultTypeFilter','vaultInternFilter'].forEach(id=>document.getElementById(id).value='');
+                fillVaultFilters(ensureVault(vaultCompany));renderVault();
+                showToast('Letter uploaded. The company and student can both view it.','success');
+            }catch(error){showToast(error.message || 'The letter could not be uploaded.','warn');}
+            finally{button.disabled=false;}
+            return;
+        }
         updateVault(vaultCompany, vt => { vt.files.push({id: vaultId(), name: picked.name, data, folder, type, owner: VAULT_ME, uploadedAt: todayISO(), version: 1}); });
         if(VAULT_ME === 'hr') logAudit('Partner HR uploaded ' + picked.name + ' (' + type + ') to ' + folderLabel(ensureVault(vaultCompany), folder), 'Pending');
         input.value = '';

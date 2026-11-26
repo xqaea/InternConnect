@@ -11,6 +11,42 @@ from test_student_auth import account
 
 
 class ResumeTests(TestCase):
+    def test_education_program_and_school_are_saved_separately(self):
+        body=resume.Resume(fields={'ed-educationProgram':'BS Computer Science',
+                                   'ed-educationSchool':'Example College',
+                                   'ed-education':'BS Computer Science\nExample College'})
+        cursor=MagicMock()
+        with patch.object(resume, 'database', lambda: database_for(cursor)):
+            resume.save_resume(body, account())
+        fields=json.loads(cursor.execute.call_args.args[1][1])['fields']
+        self.assertEqual(fields['ed-educationProgram'], 'BS Computer Science')
+        self.assertEqual(fields['ed-educationSchool'], 'Example College')
+
+    def test_multiple_experiences_keep_their_own_dates_in_storage(self):
+        body=resume.Resume(workExperiences=[
+            dict(text='First role', position='Intern', bullets=['Built a report'], start='2022-01', end='2022-06'),
+            dict(text='Second role', company='Example Company', location='Cavite', start='2023-02', end='2024-03')])
+        cursor=MagicMock()
+        with patch.object(resume, 'database', lambda: database_for(cursor)):
+            resume.save_resume(body, account())
+        stored=json.loads(cursor.execute.call_args.args[1][1])
+        self.assertEqual(stored['workExperiences'][1]['start'], '2023-02')
+        self.assertEqual(stored['workExperiences'][1]['company'], 'Example Company')
+        self.assertEqual(stored['workExperiences'][1]['location'], 'Cavite')
+        self.assertEqual(stored['workExperiences'][0]['end'], '2022-06')
+        self.assertEqual(stored['workExperiences'][0]['position'], 'Intern')
+        self.assertEqual(stored['workExperiences'][0]['bullets'], ['Built a report'])
+        self.assertIsNone(resume.Resume(fields={'ed-workexp':'Existing resume'}).workExperiences)
+
+    def test_experience_dates_are_validated_per_entry(self):
+        for entry in [dict(text='Role', start='2024-03', end='2023-01'),
+                      dict(text='Role', start='2024-02'), dict(text=' '),
+                      dict(text='Role', start='2024-13', end='2025-01'),
+                      dict(text='Role', bullets=['']), dict(text='Role', bullets=['x'*2001]),
+                      dict(text='Role', company='x'*201), dict(text='Role', location='x'*201)]:
+            with self.assertRaises(ValidationError):
+                resume.Resume(workExperiences=[entry])
+
     def test_month_year_ranges_are_saved_and_validated(self):
         fields={'ed-workStart':'2023-01','ed-workEnd':'2024-03'}
         self.assertEqual(resume.Resume(fields=fields).fields,fields)

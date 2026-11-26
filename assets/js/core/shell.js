@@ -2,6 +2,38 @@
 
 const REQUIRE_LOGIN = true;   // set to false while designing, so pages open without signing in
 
+function renderProfilePictures(){
+    const me = getJSON('ic_session', {}) || {};
+    document.querySelectorAll('[data-user="avatar"]').forEach(box => {
+        const initials = (me.name || '').trim().split(/\s+/).map(word => word[0] || '').slice(0, 2).join('').toUpperCase();
+        box.textContent = initials;
+        box.style.overflow = 'hidden';
+        if(!me.avatar) return;
+        const img = document.createElement('img');
+        img.alt = 'Profile picture';
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;flex-shrink:0';
+        img.addEventListener('error', () => box.replaceChildren(document.createTextNode(initials)), {once:true});
+        img.src = me.avatar;
+        box.replaceChildren(img);
+    });
+}
+document.addEventListener('ic:coordinator-ready', renderProfilePictures);
+document.addEventListener('ic:student-ready', renderProfilePictures);
+
+// Placement records carry identity; resolve the picture from the owned student cache.
+function profilePictureContent(person){
+    const matches = getUsers().filter(user => user.role === 'student' &&
+        (person.email ? user.email?.toLowerCase() === person.email.toLowerCase() :
+            user.name === person.name && user.classCode === (person.classCode || activeClassCode())));
+    const avatar = person.avatar || (matches.length === 1 ? matches[0].avatar : '');
+    const initials = (person.name || '?').trim().split(/\s+/).map(word => word[0] || '').slice(0,2).join('').toUpperCase();
+    return avatar ? '<img alt="Profile picture" data-profile-initials="'+esc(initials)+'" class="w-full h-full object-cover rounded-full" style="width:100%;height:100%;object-fit:cover" src="'+esc(avatar)+'">' : esc(initials);
+}
+document.addEventListener('error', event => {
+    const img = event.target;
+    if(img?.matches?.('img[data-profile-initials]')) img.replaceWith(document.createTextNode(img.dataset.profileInitials));
+}, true);
+
 // "BS Computer Science" -> "BSCS"
 function programShort(program){
     const words = (program || '').split(/\s+/).filter(Boolean);
@@ -63,5 +95,6 @@ if(sidebar){
         placeholder.querySelectorAll('div, span').forEach(el => el.setAttribute('aria-hidden', 'true'));
         main.prepend(placeholder);
     }
+    renderProfilePictures();
     document.documentElement.classList.add('shell-ready');
 }}

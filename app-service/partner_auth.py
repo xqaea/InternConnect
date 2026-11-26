@@ -11,16 +11,17 @@ from coordinator_auth import coordinator, owned_batch, Decision
 router = APIRouter()
 PARTNER_QUERY = ('SELECT a.*,c.name AS company,c.class_code, '
                  "COALESCE(p.status,'active') AS status,COALESCE(p.category,'') AS category, "
-                 "COALESCE(p.avatar,'') AS avatar,p.created_at "
+                 "COALESCE(p.avatar,'') AS avatar,p.created_at,COALESCE(b.theme,'sky') AS theme "
                  'FROM partner_accounts a JOIN companies c ON c.id=a.company_id '
-                 'LEFT JOIN partner_profiles p ON p.account_id=a.id ')
+                 'LEFT JOIN partner_profiles p ON p.account_id=a.id '
+                 'LEFT JOIN student_batches b ON b.code=c.class_code ')
 
 
 def public_partner(row):
     return dict(email=row['email'], name=row['name'], company=row['company'],
                 classCode=row['class_code'], category=row.get('category', ''),
                 avatar=row.get('avatar', ''), status=row['status'], role='partnercompany',
-                theme='sky', sharedPostings=True, databaseAccount=True)
+                theme=row.get('theme') or 'sky', sharedPostings=True, databaseAccount=True)
 
 
 def partner(credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())):

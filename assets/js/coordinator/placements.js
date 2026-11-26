@@ -63,9 +63,10 @@ async function placementAction(name, act, email){
     if(act === 'files'){ openInternFiles(p.company, p.name); return; }
     if(p.databaseRecord){
         if(act!=='deploy' || p.status!=='Accepted') return showToast('The partner must accept this application before deployment.', 'info');
-        const scans=internDocs(p.company,p.name);
-        const endorsement=scans.find(file=>file.type==='Endorsement letter' && file.data);
-        const acceptance=scans.find(file=>file.type==='Acceptance letter' && file.data);
+        try{await window.ICSharedLetters.load(p.company);}catch(error){showToast(error.message || 'Shared letters could not be loaded.','warn');return;}
+        const scans=ensureVault(p.company).files.filter(file=>file.sharedLetter && file.email===p.email);
+        const endorsement=scans.find(file=>file.type==='Endorsement letter');
+        const acceptance=scans.find(file=>file.type==='Acceptance letter');
         if(!endorsement || !acceptance){
             showToast('Upload the signed endorsement and acceptance letters in Files first (PDF under 1.5 MB, or image under 1 MB).', 'warn');
             openInternFiles(p.company,p.name);
@@ -73,8 +74,10 @@ async function placementAction(name, act, email){
         }
         openScheduleModal(p,'Confirm deployment of '+name,async schedule=>{
             try{
+                const endorsementScan=await window.ICSharedLetters.read(endorsement);
+                const acceptanceScan=await window.ICSharedLetters.read(acceptance);
                 await window.ICCoordinatorApi.confirmDeployment(p.applicationId,{schedule,
-                    endorsement:{name:endorsement.name,data:endorsement.data},acceptance:{name:acceptance.name,data:acceptance.data}});
+                    endorsement:endorsementScan,acceptance:acceptanceScan});
                 await window.syncCoordinatorState();
                 renderPlacements();
                 showToast(name+' deployment confirmed and saved.', 'success');

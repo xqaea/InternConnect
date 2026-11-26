@@ -7,15 +7,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 from sentence_transformers import SentenceTransformer
 
-from matching import cosine_similarity, rank_embeddings
+from matching import cosine_similarity, parse_threshold, rank_embeddings
 from onet_skills import load_skill_catalog, normalize_skills
 from onet_import import TABLE_COLUMNS
 from onet_occupations import OccupationCatalog
 from onet_skills import ONET_DATA_DIR
+from careers import profile_text, rank_careers
 
 
 MODEL_NAME = 'sentence-transformers/all-MiniLM-L6-v2'
 MODEL_PATH = Path(__file__).resolve().parent / 'models' / 'all-MiniLM-L6-v2'
+# Similarity cutoff tau for "does this posting match". Development baseline 0.60 until calibrated (PLAN.md Phase 1).
+MATCH_THRESHOLD = parse_threshold(os.getenv('IC_MATCH_THRESHOLD'))
 app = FastAPI(title='InternConnect AI Service')
 app.add_middleware(
     CORSMiddleware,
@@ -41,6 +44,47 @@ class MatchRequest(BaseModel):
         if not cleaned:
             raise ValueError('Provide at least one non-empty skill.')
         return cleaned
+
+
+class CareerRequest(BaseModel):
+    student_skills: list[str] = Field(min_length=1,max_length=200)
+    resume_context: str = Field(default='',max_length=8000)
+    limit: int = Field(default=5,ge=1,le=10)
+
+    @field_validator('student_skills')
+    @classmethod
+    def valid_skills(cls,value):
+        cleaned=list(dict.fromkeys(skill.strip() for skill in value if skill.strip()))
+        if not cleaned or any(len(skill)>200 for skill in cleaned):
+            raise ValueError('Provide saved resume skills of up to 200 characters each.')
+        return cleaned
+
+
+@lru_cache(maxsize=1)
+def career_index():
+    occupations=sorted(require_occupation_catalog().occupations.values(),key=lambda item:item['code'])
+    if not occupations:
+        raise HTTPException(503,'The career catalog is empty. Import the occupation data first.')
+    vectors=get_model().encode([profile_text(item) for item in occupations],normalize_embeddings=True,convert_to_numpy=True)
+    return occupations,vectors
+
+
+@app.post('/api/match/careers')
+def career_matches(request:CareerRequest):
+    try:
+        occupations,vectors=career_index()
+        # Separate skill and narrative embeddings so long skill lists cannot erase resume context.
+        texts=['; '.join(request.student_skills)]
+        if request.resume_context.strip():
+            texts.append(request.resume_context.strip())
+        encoded=get_model().encode(texts,normalize_embeddings=True,convert_to_numpy=True)
+        vector=encoded.mean(axis=0)
+        matches=rank_careers(vector,occupations,vectors,request.student_skills,request.limit)
+    except RuntimeError:
+        raise HTTPException(503,'The local career model is unavailable. Check the AI service setup.') from None
+    return {'model':MODEL_NAME,'source':'O*NET 31.0','score_type':'semantic_alignment',
+        'score_note':'Cosine similarity expressed as a percentage. This is not a hiring probability or a qualification assessment.',
+        'matches':matches}
 
 
 class PostingMatch(BaseModel):
@@ -179,8 +223,8 @@ def rank_matches(request: RankRequest) -> dict[str, object]:
         (posting.id, embedding)
         for posting, embedding in zip(request.postings, vectors[1:])
     ]
-    matches = rank_embeddings(vectors[0], postings)
+    matches = rank_embeddings(vectors[0], postings, MATCH_THRESHOLD)
     for match in matches:
         if match['posting_id'] in contexts:
             match['onet_occupation'] = contexts[match['posting_id']]
-    return {'model': MODEL_NAME, 'matches': matches}
+    return {'model': MODEL_NAME, 'threshold': MATCH_THRESHOLD, 'matches': matches}

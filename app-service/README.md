@@ -1,6 +1,6 @@
 # Shared postings API
 
-This MySQL service is separate from the AI service on port 8000. It stores accounts, batch ownership and approvals, login limits, shared postings with GPS coordinates, resumes, application snapshots, confirmed placements, attendance, classwork tasks, narrative reports, reviews and grades. Database accounts read these records across browsers. The general document vault, audits, alumni transitions and some other OJT controls still use prototype storage; see `docs/implementation-progress.md` for acceptance status and remaining work.
+This MySQL service is separate from the AI service on port 8000. It stores accounts, batch ownership and approvals, login limits, shared postings with GPS coordinates, resumes, application snapshots, confirmed placements, attendance, classwork tasks, narrative reports, reviews and grades. Database accounts read these records across browsers. Signed endorsement and acceptance letters in student folders are shared through MySQL between the owning coordinator, company and student, including before deployment. Other document-vault types, broader audit coverage, alumni transitions and some other OJT controls still use prototype storage; see `docs/implementation-progress.md` for acceptance status and remaining work.
 
 ## Setup
 
@@ -28,7 +28,7 @@ Partner browser registration creates a pending database account using an active 
 
 After five failed passwords, that role/email is locked for five minutes. Partner limits are persisted in the MySQL `login_attempts` table and serialized with a row lock. Re-run `manage.py init` on existing installations to create this additional table, then restart the API. Browser login shows remaining attempts and a countdown. Correct credentials clear failures; expired locks start a new attempt cycle.
 
-Student, coordinator and partner authentication and login limits are enforced by the server. Explicit prototype demos for all roles use `demo@sjc.edu.ph` / `DemoAccess2026!`; unknown email/password combinations no longer open demo sessions. Demo accounts cannot write server batches, approvals or shared postings.
+Student, coordinator and partner authentication and login limits are enforced by the server. There is no built-in demo login: an earlier version of this file documented one, but nothing in the code accepts it any more, and unknown email/password combinations never open a session. To try each role locally, create the development accounts described under "Development accounts" below.
 
 ## Coordinator accounts and batch ownership
 
@@ -91,6 +91,33 @@ On HTTP development pages the app API defaults to the website hostname on port 8
 For HTTPS deployment use a same-origin reverse proxy at /app-api, or set window.IC_APP_API_BASE before loading postings-api.js. Serve both site and API through HTTPS. Set IC_APP_ALLOWED_ORIGINS to exact permitted frontend origins when they differ. Keep MySQL accessible only to the API server.
 
 If a student posting read fails, the app explicitly reports local browser fallback. Failed saves by a server-authenticated partner remain errors and are never silently saved locally. Public posting reads expose only posting/company information, not accounts or credentials.
+
+## Development accounts
+
+To try every portal on your own computer, create one account per role in a local database (run `manage.py init` first):
+
+```powershell
+$env:IC_DB_HOST = '127.0.0.1'; $env:IC_DB_USER = 'your_database_user'; $env:IC_DB_PASSWORD = Read-Host 'Database password'
+ai-service\.venv\Scripts\python.exe app-service\manage.py dev-accounts
+```
+
+It creates a coordinator who owns the batch `DEV-CS-2026`, an approved student with a saved resume, a second student waiting for the coordinator's approval, and an approved partner whose company has one open sample internship. Emails are `dev.coordinator@example.com`, `dev.student@example.com`, `dev.student.pending@example.com` and `dev.partner@example.com` (`example.com` is reserved and never reaches a real person). Passwords are random, are never printed, and are written to `.local/dev-accounts.txt`, which Git ignores; delete that file and the accounts when you are done. Existing accounts keep their password; add `--reset-passwords` to replace them. The command refuses any database host other than this computer. Alumni accounts cannot be created this way: alumni conversion is still a browser-only prototype.
+
+Things to try: sign in as the coordinator and approve the pending student under Requests; sign in as the student and apply to the sample internship in Job Matching; sign in as the partner to review the applicant; then have the coordinator upload the signed scans and deploy the student to start attendance.
+
+To check every role's use cases automatically, run `app-service/e2e_check.py` against the running API; `docs/testing-guide.md` explains it, lists a manual walkthrough per role and says what is not covered.
+
+## Attendance rules
+
+Re-run `manage.py init` (or `start-local.cmd -InitDatabase`) to add three tables without touching existing data: `attendance_holidays`, `attendance_absences` and `attendance_attempts`. Then restart the API.
+
+- **Verification.** A time-in or time-out is saved as a flagged record, with the reasons stored, when the measured distance is beyond the site radius ("out of radius"), the reported GPS accuracy is worse than the limit ("low GPS accuracy"), or a time-in has no live photo ("missing photo"). Remote days skip the radius and accuracy checks. Flagged days earn no hours until the coordinator accepts them. A time-in on a holiday or an unscheduled day is saved as "Outside schedule" for the same review.
+- **Defaults.** The geofence radius defaults to 150 m (thesis Chapter 3) and is set per site. The accuracy limit defaults to 100 m and can be changed with the `IC_GPS_ACCURACY_LIMIT_M` environment variable (a positive number of metres); this default is a development choice, not a thesis value.
+- **Attempts log.** Every clock attempt that reaches the handler is written to `attendance_attempts` with its outcome (`accepted`, `flagged` or `rejected`), reasons, measured distance, reported accuracy and radius. Refused attempts (no deployment, already timed in, no open time-in, worksite not configured) are logged too, in their own transaction. Requests rejected by schema validation (for example impossible coordinates) are not logged. See "Camera-only photos" below.
+- **Camera-only photos.** The page has no file picker, gallery, drop target or `capture` input; the photo is a frame drawn from the live `getUserMedia` stream. The server backs this up as far as a browser allows: `POST /api/student/attendance/challenge` issues a signed capture code (180 s, bound to the student, HMAC key per process, or `IC_CAPTURE_SECRET` when several workers run); the page prints the code and time onto the picture; a time-in photo without a valid, unexpired code of the same student is refused (400 "photo not live", logged); the photo must be a JPEG no larger than 480 x 960 (else 422); a JPEG carrying Exif camera metadata is saved but flagged "photo has camera metadata". The code is stored as `captureCode`. This is not proof of a camera: a script or a virtual camera can still produce a valid frame, which only a native app or hardware attestation could stop.
+- **Holidays.** Coordinators manage holidays and no-work days per batch (`GET/POST /api/coordinator/holidays`, `DELETE /api/coordinator/holidays/{class_code}/{date}`). Holidays are never absences; adding one removes unreviewed absences recorded for that day.
+- **Absences.** A scheduled workday after deployment (starting the day after) and before today, with no clock-in and no holiday, is recorded in `attendance_absences` the first time attendance is read. Nothing is recorded for today, and no new absences are recorded once the required 486 hours are credited. The student can explain an absence; the coordinator excuses it or keeps it absent, and can undo that.
+- **Audit.** Clock events, flagged outcomes, reviews, excuses, explanations and holiday changes are written to the audit log in the same transaction as the change.
 
 ## Acceptance checks
 

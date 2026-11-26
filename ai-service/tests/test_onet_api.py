@@ -29,6 +29,8 @@ class OnetApiTests(unittest.TestCase):
         self.assertEqual(model.texts, ['Python', 'SQL'])
         self.assertEqual(response['matches'][0]['similarity'], 0.707107)
         self.assertEqual(response['matches'][0]['onet_occupation'], occupation)
+        self.assertEqual(response['threshold'], main.MATCH_THRESHOLD)
+        self.assertIs(response['matches'][0]['meets_threshold'], 0.707107 >= main.MATCH_THRESHOLD)
 
     def test_unknown_occupation_is_rejected_before_model_inference(self):
         request = main.RankRequest(student_skills=['Python'], postings=[{

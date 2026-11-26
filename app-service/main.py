@@ -19,8 +19,12 @@ from student_resume import router as resume_router
 from applications import router as applications_router
 from placements import router as placements_router
 from attendance import router as attendance_router
+from attendance_holidays import router as attendance_holidays_router
 from tasks import router as tasks_router
 from reports import router as reports_router
+from notifications import router as notifications_router
+from audit import router as audit_router
+from vault_letters import router as vault_letters_router
 
 app = FastAPI(title='InternConnect App API')
 app.include_router(student_router)
@@ -30,8 +34,12 @@ app.include_router(resume_router)
 app.include_router(applications_router)
 app.include_router(placements_router)
 app.include_router(attendance_router)
+app.include_router(attendance_holidays_router)
 app.include_router(tasks_router)
 app.include_router(reports_router)
+app.include_router(notifications_router)
+app.include_router(audit_router)
+app.include_router(vault_letters_router)
 app.add_middleware(CORSMiddleware,
     allow_origins=[x.strip() for x in os.getenv('IC_APP_ALLOWED_ORIGINS', '').split(',') if x.strip()],
     allow_origin_regex=r'^https?://(localhost|127\.0\.0\.1)(:\d+)?$',
@@ -100,7 +108,7 @@ class Posting(BaseModel):
 def posting_json(row):
     payload = json.loads(row['payload']) if isinstance(row['payload'], str) else row['payload']
     return {**payload, 'id': row['id'], 'company': row['company'],
-            'coordinates': {'lat': row['latitude'], 'lng': row['longitude'], 'source': 'browser-gps'} if row['latitude'] is not None and row['longitude'] is not None else None,
+            'coordinates': {'lat': row['latitude'], 'lng': row['longitude'], 'source': (payload.get('coordinates') or {}).get('source', 'browser-gps')} if row['latitude'] is not None and row['longitude'] is not None else None,
             'status': row['status'], 'postedAt': row['posted_at'].isoformat()}
 
 
@@ -110,21 +118,21 @@ def health():
         cursor = connection.cursor()
         # Check every implemented storage boundary, without loading user records.
         # These identifiers are fixed server constants, never request input.
-        for table in ('companies', 'partner_accounts', 'posting_sessions', 'job_postings',
+        for table in ('audit_events', 'companies', 'partner_accounts', 'posting_sessions', 'job_postings',
                       'student_batches', 'student_accounts', 'student_sessions',
                       'coordinator_accounts', 'coordinator_batches', 'coordinator_sessions',
-                      'login_attempts', 'partner_profiles', 'student_resumes', 'internship_applications', 'official_placements', 'student_attendance', 'classwork_tasks', 'narrative_reports'):
+                      'login_attempts', 'partner_profiles', 'student_resumes', 'internship_applications', 'official_placements', 'student_attendance', 'attendance_holidays', 'attendance_absences', 'attendance_attempts', 'classwork_tasks', 'narrative_reports', 'notification_receipts', 'vault_letters'):
             cursor.execute(f'SELECT * FROM {table} LIMIT 0')
             cursor.fetchall()
     return {'status': 'ok', 'database': 'mysql'}
 
 
-def authenticate(body: Login, role: str):
+def authenticate(body: Login, role: str | None = None):
     rejection = None
     with database() as connection:
         cursor = connection.cursor(dictionary=True)
         email = body.email.strip().lower()
-        attempt_key = token_hash(role + ':' + email)
+        attempt_key = token_hash('login:' + email)
         cursor.execute('DELETE FROM login_attempts WHERE updated_at<UTC_TIMESTAMP()-INTERVAL 1 DAY')
         # The row lock serializes simultaneous attempts for the same email.
         cursor.execute('INSERT INTO login_attempts (attempt_key,failures,updated_at) VALUES (%s,0,UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE attempt_key=VALUES(attempt_key)', (attempt_key,))
@@ -135,14 +143,19 @@ def authenticate(body: Login, role: str):
             retry = math.ceil((attempt['blocked_until'] - now).total_seconds())
             rejection = HTTPException(429, {'message': 'Too many failed attempts.', 'retry_after': retry}, headers={'Retry-After': str(retry)})
         else:
-            query = STUDENT_QUERY + 'WHERE a.email=%s' if role == 'student' else PARTNER_QUERY + 'WHERE a.email=%s'
-            if role == 'coordinator':
-                query = COORDINATOR_QUERY + 'WHERE a.email=%s ORDER BY o.created_at,o.class_code LIMIT 1'
-            cursor.execute(query, (email,))
-            account = cursor.fetchone()
-            encoded = account['password_hash'] if account else 'pbkdf2_sha256$invalid$' + '0' * 64
-            valid_password = verify_password(body.password, encoded)
-            if not account or not valid_password:
+            queries = {
+                'student': STUDENT_QUERY + 'WHERE a.email=%s',
+                'coordinator': COORDINATOR_QUERY + 'WHERE a.email=%s ORDER BY o.created_at,o.class_code LIMIT 1',
+                'partnercompany': PARTNER_QUERY + 'WHERE a.email=%s',
+            }
+            matches = []
+            for candidate_role in ([role] if role else queries):
+                cursor.execute(queries[candidate_role], (email,))
+                candidate = cursor.fetchone()
+                encoded = candidate['password_hash'] if candidate else 'pbkdf2_sha256$invalid$' + '0' * 64
+                if verify_password(body.password, encoded) and candidate:
+                    matches.append((candidate_role, candidate))
+            if not matches:
                 failures = 1 if attempt['blocked_until'] else attempt['failures'] + 1
                 blocked_until = now + timedelta(minutes=5) if failures >= 5 else None
                 cursor.execute('UPDATE login_attempts SET failures=%s,blocked_until=%s,updated_at=UTC_TIMESTAMP() WHERE attempt_key=%s', (failures, blocked_until, attempt_key))
@@ -150,7 +163,10 @@ def authenticate(body: Login, role: str):
                              HTTPException(401, {'message': 'Invalid email or password.', 'remaining_attempts': 5 - failures}))
             else:
                 cursor.execute('DELETE FROM login_attempts WHERE attempt_key=%s', (attempt_key,))
-                if account['status'] != 'active':
+                role, account = matches[0]
+                if len(matches) > 1:
+                    rejection = HTTPException(409, 'These credentials match multiple account types. Please contact your coordinator to use a separate email for each account.')
+                elif account['status'] != 'active':
                     rejection = HTTPException(403, 'Your account is waiting for approval or is inactive.')
                 else:
                     token = secrets.token_urlsafe(32)
@@ -169,6 +185,11 @@ def authenticate(body: Login, role: str):
     return {'token': token, 'user': user}
 
 
+@app.post('/api/auth/login')
+def unified_login(body: Login):
+    return authenticate(body)
+
+
 @app.post('/api/auth/partner/login')
 def login(body: Login):
     return authenticate(body, 'partnercompany')
@@ -182,6 +203,11 @@ def student_login(body: Login):
 @app.post('/api/auth/coordinator/login')
 def coordinator_login(body: Login):
     return authenticate(body, 'coordinator')
+
+
+@app.get('/api/partner/me')
+def partner_profile(account=Depends(partner)):
+    return {'user': public_partner(account)}
 
 
 @app.delete('/api/auth/partner/session')

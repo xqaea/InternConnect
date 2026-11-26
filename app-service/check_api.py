@@ -56,6 +56,9 @@ def main():
             ('DELETE', '/api/coordinator/tasks/test', 401),
             ('GET', '/api/student/reports', 401), ('GET', '/api/coordinator/reports', 401),
             ('POST', '/api/student/tasks/test/report', 401), ('PUT', '/api/coordinator/tasks/test/report', 401),
+            ('GET', '/api/student/notifications', 401), ('POST', '/api/student/notifications/read', 401),
+            ('GET', '/api/coordinator/notifications', 401), ('POST', '/api/coordinator/notifications/read', 401),
+            ('GET', '/api/partner/notifications', 401), ('POST', '/api/partner/notifications/read', 401),
         ]:
             status, _, body = call(path, method)
             assert status == expected, (path, status, body)

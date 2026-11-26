@@ -12,7 +12,7 @@ function applyTheme(theme){
 
 // Logged-in user's theme (set at login / sign up, cleared at logout)
 const icSession = getJSON('ic_session', null);
-const icInitialClass = icSession?.role === 'student' ? getJSON('ic_classes', {})[icSession.classCode] : null;
+const icInitialClass = (icSession?.role === 'student' || (icSession?.role === 'partnercompany' && !icSession.databaseAccount)) ? getJSON('ic_classes', {})[icSession.classCode] : null;
 applyTheme(icInitialClass?.theme || icSession?.theme);
 if(document.documentElement.hasAttribute('data-portal')){
     try{

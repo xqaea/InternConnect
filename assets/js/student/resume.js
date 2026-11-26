@@ -1,4 +1,5 @@
 function initStudentResume({getJSON, setJSON, session, toast, exportStudentPdf}){
+  const workEditor=window.ICResumeWork?.init();
   const datedEntry=(value,fields,prefix)=>{
     const format=value=>{
       if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(value || '')) return '';
@@ -8,7 +9,9 @@ function initStudentResume({getJSON, setJSON, session, toast, exportStudentPdf})
     const range=[format(fields['ed-'+prefix+'Start']),format(fields['ed-'+prefix+'End'])].filter(Boolean).join(' - ');
     return String(value || '').trim() ? value+(range?' ('+range+')':'') : '';
   };
-  const datesValid=()=>['work','education','project'].every(prefix=>{
+  const educationRange=fields=>window.ICResumeWork.range({start:fields['ed-educationStart'],end:fields['ed-educationEnd']});
+  const educationText=fields=>[[fields['ed-educationProgram'],educationRange(fields)].filter(Boolean).join(' '),fields['ed-educationSchool'] || ''].filter(Boolean).join('\n');
+  const datesValid=()=> (!workEditor || workEditor.validate(toast)) && ['education','project'].every(prefix=>{
     const start=document.getElementById('ed-'+prefix+'Start'),end=document.getElementById('ed-'+prefix+'End');
     if(!start?.value && !end?.value) return true;
     if(!start?.value || !end?.value || start.value>end.value){toast('Choose a start and end month, with the end on or after the start.', 'warn');return false;}
@@ -35,15 +38,21 @@ function initStudentResume({getJSON, setJSON, session, toast, exportStudentPdf})
     get('pv-name').textContent = get('ed-name')?.value || 'Your Name';
     get('pv-contact').textContent = [get('ed-email')?.value, get('ed-phone')?.value].filter(Boolean).join(' | ');
     get('pv-objective').textContent = get('ed-objective')?.value || '';
-    get('pv-education').textContent = get('ed-education')?.value || '';
+    const educationFields=Object.fromEntries(['Program','School','Start','End'].map(kind=>['ed-education'+kind,get('ed-education'+kind)?.value || '']));
+    get('ed-education').value=[educationFields['ed-educationProgram'],educationFields['ed-educationSchool']].filter(Boolean).join('\n');
+    const education=get('pv-education');education.replaceChildren();
+    const educationHeading=document.createElement('div');educationHeading.className='resume-work-heading';
+    const program=document.createElement('strong');program.textContent=educationFields['ed-educationProgram'];
+    const educationDates=document.createElement('span');educationDates.className='resume-work-dates';educationDates.textContent=educationRange(educationFields);
+    educationHeading.append(program,educationDates);education.appendChild(educationHeading);
+    const school=document.createElement('div');school.className='resume-education-school';school.textContent=educationFields['ed-educationSchool'];education.appendChild(school);
     ['pv-objective','pv-education'].forEach(id=>{
       const content=get(id);
       content.parentElement.style.display=content.textContent.trim()?'':'none';
     });
 
-    const work = get('ed-workexp')?.value.trim() || '';
+    const work = workEditor?workEditor.text(datedEntry):get('ed-workexp')?.value.trim() || '';
     get('pv-workexp-wrap').style.display = work ? '' : 'none';
-    get('pv-workexp').innerHTML = linesToListItems(work);
 
     const soft = [...document.querySelectorAll('#softTagBox .tag-chip')].map(c => c.childNodes[0]?.textContent?.trim() || '').filter(Boolean);
     const hard = [...document.querySelectorAll('#techTagBox .tag-chip')].map(c => c.childNodes[0]?.textContent?.trim() || '').filter(Boolean);
@@ -58,8 +67,8 @@ function initStudentResume({getJSON, setJSON, session, toast, exportStudentPdf})
     get('pv-projects-wrap').style.display = includeThesis && thesisTitle ? '' : 'none';
     get('pv-projects').textContent = thesisTitle + ((get('ed-thesisRole')?.value || '').trim() ? ' — ' + get('ed-thesisRole').value.trim() : '');
     const dateFields=Object.fromEntries(['work','education','project'].flatMap(prefix=>['Start','End'].map(kind=>['ed-'+prefix+kind,get('ed-'+prefix+kind)?.value || ''])));
-    get('pv-workexp').innerHTML=linesToListItems(datedEntry(work,dateFields,'work'));
-    get('pv-education').textContent=datedEntry(get('ed-education')?.value || '',dateFields,'education');
+    if(workEditor) workEditor.renderPreview(get('pv-workexp'));
+    else get('pv-workexp').innerHTML=linesToListItems(datedEntry(work,dateFields,'work'));
     get('pv-projects').textContent=datedEntry(get('pv-projects').textContent,dateFields,'project');
 
     const includeCerts = get('includeCertsToggle')?.checked;
@@ -88,14 +97,14 @@ function initStudentResume({getJSON, setJSON, session, toast, exportStudentPdf})
         pvCustom.appendChild(block);
       });
     }
-    ['pv-objective','pv-education','pv-projects'].forEach(id => {
+    ['pv-projects'].forEach(id => {
       const element=get(id);
       if(element) element.innerHTML=linesToListItems(element.textContent);
     });
     const skillColumns=skills=>{
       const columns=[];
-      for(let index=0;index<skills.length;index+=4){
-        columns.push('<li class="resume-skill-column"><ul>'+linesToListItems(skills.slice(index,index+4).join('\n'))+'</ul></li>');
+      for(let index=0;index<skills.length;index+=3){
+        columns.push('<li class="resume-skill-column"><ul>'+linesToListItems(skills.slice(index,index+3).join('\n'))+'</ul></li>');
       }
       return columns.join('');
     };
@@ -172,7 +181,7 @@ function initStudentResume({getJSON, setJSON, session, toast, exportStudentPdf})
     // Self-declared profile is saved per student (ic_resume); Job Matching reads the skills from here
     const me = getJSON('ic_session', {}), key = (me.email || me.name || '').toLowerCase(), $r = id => document.getElementById(id);
     const escR = t => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const FIELDS = ['ed-name', 'ed-phone', 'ed-email', 'ed-objective', 'ed-workexp', 'ed-education', 'ed-thesisTitle', 'ed-thesisRole', 'ed-volunteer', 'ed-awards', ...['work','education','project'].flatMap(prefix=>['ed-'+prefix+'Start','ed-'+prefix+'End'])];
+    const FIELDS = ['ed-name', 'ed-phone', 'ed-email', 'ed-objective', 'ed-workexp', 'ed-education', 'ed-educationProgram', 'ed-educationSchool', 'ed-thesisTitle', 'ed-thesisRole', 'ed-volunteer', 'ed-awards', ...['work','education','project'].flatMap(prefix=>['ed-'+prefix+'Start','ed-'+prefix+'End'])];
     const chipsOf = box => [...document.querySelectorAll('#' + box + ' .tag-chip')].map(c => (c.childNodes[0]?.textContent || '').trim()).filter(Boolean);
     const langs = () => [...document.querySelectorAll('#resume-edit .gap-x-5 input')];
     let saveQueue = Promise.resolve();
@@ -188,7 +197,8 @@ function initStudentResume({getJSON, setJSON, session, toast, exportStudentPdf})
       return operation;
     };
     const collect = () => ({
-      fields: Object.fromEntries(FIELDS.map(id => [id, $r(id)?.value || ''])),
+      fields: Object.assign(Object.fromEntries(FIELDS.map(id => [id, $r(id)?.value || ''])),workEditor?{'ed-workexp':workEditor.text(datedEntry),'ed-workStart':'','ed-workEnd':''}:{},{'ed-education':[$r('ed-educationProgram')?.value,$r('ed-educationSchool')?.value].filter(Boolean).join('\n')}),
+      workExperiences: workEditor?.entries() || null,
       soft: chipsOf('softTagBox'), hard: chipsOf('techTagBox'),
       thesisOn: !!$r('includeThesisToggle')?.checked, certsOn: !!$r('includeCertsToggle')?.checked,
       photoOn: !!$r('includePhotoToggle')?.checked,
@@ -204,6 +214,14 @@ function initStudentResume({getJSON, setJSON, session, toast, exportStudentPdf})
     }
     function applyResume(d){
       Object.entries(d.fields || {}).forEach(([id, v]) => { if($r(id)) $r(id).value = v; });
+      if(!Object.hasOwn(d.fields || {},'ed-educationProgram') && !Object.hasOwn(d.fields || {},'ed-educationSchool')){
+        const legacy=d.fields?.['ed-education'] || '';
+        const suffix=me.school?', '+me.school:'';
+        const matched=!!(suffix && legacy.endsWith(suffix));
+        $r('ed-educationProgram').value=matched?legacy.slice(0,-suffix.length):legacy;
+        $r('ed-educationSchool').value=matched?me.school:'';
+      }
+      workEditor?.load(d);
       setChips('softTagBox', 'softTagInput', d.soft || [], 'soft'); setChips('techTagBox', 'techTagInput', d.hard || [], '');
       [['includeThesisToggle', d.thesisOn], ['includeCertsToggle', d.certsOn]].forEach(([id, on]) => { const t = $r(id); if(t){ t.checked = on !== false; t.dispatchEvent(new Event('change')); } });
       const rows = $r('certRows'); if(rows){ rows.innerHTML = ''; (d.certs || []).forEach(c => { $r('addCertBtn').click(); [...rows.lastElementChild.querySelectorAll('input, select')].forEach((x, n) => { x.value = c[n] || x.value; }); }); }
@@ -224,7 +242,8 @@ function initStudentResume({getJSON, setJSON, session, toast, exportStudentPdf})
       if($r('ed-email') && me.email) $r('ed-email').value = me.email;
       if(getJSON('ic_users', []).some(u => u.role === 'student' && u.email === me.email)){
         ['ed-phone', 'ed-objective', 'ed-workexp', 'ed-volunteer', 'ed-awards'].forEach(id => { if($r(id)) $r(id).value = ''; });
-        if($r('ed-education')) $r('ed-education').value = [me.program, me.school].filter(Boolean).join(', ');
+        if($r('ed-educationProgram')) $r('ed-educationProgram').value = me.program || '';
+        if($r('ed-educationSchool')) $r('ed-educationSchool').value = me.school || '';
         setChips('softTagBox', 'softTagInput', [], 'soft');
         setChips('techTagBox', 'techTagInput', [], '');
         [...document.querySelectorAll('#certRows input')].forEach(input => { input.value = ''; });
@@ -298,14 +317,17 @@ function initStudentResume({getJSON, setJSON, session, toast, exportStudentPdf})
       const data = collect(), f = data.fields;
       const verified = allTaskIds().flatMap(id => taskSubmissions(id).filter(s => s.name === me.name && s.status === 'Verified' && s.bullet).map(s => s.bullet));
       exportStudentResumePdf('Resume_' + fileSlug(me.name || 'Student') + '.pdf', f['ed-name'] || me.name || 'Resume', [f['ed-email'], f['ed-phone']].filter(Boolean).join(' | '), [
-        ['Summary', f['ed-objective']], ['Work or Related Experience', datedEntry(f['ed-workexp'],f,'work')],
+        ['Summary', f['ed-objective']], ['Work or Related Experience', workEditor?workEditor.text(datedEntry):datedEntry(f['ed-workexp'],f,'work')],
         ['Projects', data.thesisOn ? datedEntry([f['ed-thesisTitle'], f['ed-thesisRole']].filter(Boolean).join(' - '),f,'project') : ''],
         ['Soft Skills', data.soft.join('\n')], ['Technical Skills', data.hard.join('\n')],
         ['Certifications', data.certsOn ? data.certs.map(c => c.filter(Boolean).join(' - ')).join('\n') : ''],
-        ['Volunteer Work', f['ed-volunteer']], ['Education', datedEntry(f['ed-education'],f,'education')], ['Honors and Awards', f['ed-awards']],
+        ['Volunteer Work', f['ed-volunteer']], ['Education', educationText(f)], ['Honors and Awards', f['ed-awards']],
         ...data.custom.map(c => [c.title || 'Additional Section', c.text]),
         ['Verified Internship Experience', verified.join('\n')]
-      ], data.photoOn ? session()?.avatar : '', toast);
+      ], data.photoOn ? session()?.avatar : '', toast, data.workExperiences || [], {
+        program:f['ed-educationProgram'],school:f['ed-educationSchool'],
+        start:f['ed-educationStart'],end:f['ed-educationEnd']
+      });
     });
     renderResumePreview();
   }

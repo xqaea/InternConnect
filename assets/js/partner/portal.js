@@ -1,5 +1,30 @@
 /* ============ Partner Company portal (optional: the coordinator can still do all of this) ============ */
-// Students who applied to a posting, ranked by compatibility (same score the student sees in Job Matching)
+function parsePostingCoordinates(value){
+    const match = String(value).trim().match(/^([+-]?(?:\d+(?:\.\d*)?|\.\d+))\s*,\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+))$/);
+    if(!match) return null;
+    const lat = Number(match[1]), lng = Number(match[2]);
+    return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? {lat,lng} : null;
+}
+// Similarity of each applicant to a posting, from the Sentence-BERT service only (same score source the student sees).
+// Applicants without a score stay in application order; there is no substitute formula.
+const applicantScores = new Map();      // 'postingId|applicantKey' -> similarity in [0, 1]
+const applicantScoreState = new Map();  // postingId -> 'loading' | 'ready' | 'unavailable'
+const applicantScoreKey = (job, applicant) => job.id + '|' + applicant.key;
+const applicantScore = (job, applicant) => applicantScores.get(applicantScoreKey(job, applicant));
+async function loadApplicantScores(job){
+    applicantScoreState.set(job.id, 'loading'); // set before the first await so a second render does not start another load
+    const ai = window.ICCore && window.ICCore.aiMatching;
+    if(!ai){ applicantScoreState.set(job.id, 'unavailable'); return; }
+    try{
+        const list = applicantsOf(job);
+        const results = await Promise.all(list.map(a => ai.scoreOne(a.skills, job.id, job)));
+        list.forEach((a, i) => { if(Number.isFinite(results[i])) applicantScores.set(applicantScoreKey(job, a), results[i]); });
+        applicantScoreState.set(job.id, 'ready');
+    }catch(error){
+        applicantScoreState.set(job.id, 'unavailable');
+    }
+}
+// Students who applied to a posting, ranked by semantic similarity once scores are loaded
 function applicantsOf(job){
     const users = getUsers(), out = [];
     Object.entries(getJSON(JOB_APPS_KEY, {})).forEach(([key, apps]) => apps.filter(a => a.job === job.id).forEach(a => {
@@ -7,9 +32,12 @@ function applicantsOf(job){
         const who = {email: a.email || u.email || key, name: a.name || u.name || key, program: a.program || u.program || 'BS Computer Science'};
         const status = jobAppStatus(a, who);
         if(['Cancelled', 'Withdrawn', 'Not placed'].includes(status)) return;
-        out.push({key, who, app: a, status, match: jobMatch(job, Object.assign({}, who, {email: key, applicationResume:a.databaseApplication ? a.resume : null}))});
+        const submitted = Object.assign({}, who, {email: key, applicationResume:a.databaseApplication ? a.resume : null});
+        // `match` only supplies the matched/gap skill chips; its score is not shown or used for ranking.
+        out.push({key, who, app: a, status, match: jobMatch(job, submitted), skills: jmSkills(submitted)});
     }));
-    return out.sort((x, y) => y.match.score - x.match.score);
+    const ai = window.ICCore && window.ICCore.aiMatching;
+    return ai ? out.sort((x, y) => ai.sortValue(applicantScore(job, y)) - ai.sortValue(applicantScore(job, x))) : out;
 }
 // Resume shown to the partner: self-declared (Resume Builder); jobs also get the system-generated Verified entries
 function resumeHtml(key, name, withVerified){
@@ -90,10 +118,16 @@ if(document.body.dataset.ppage) (async function(){
 
     if(me.sharedPostings){
         try {
+            const profile = await window.ICPostingApi.me();
+            Object.assign(me, profile.user);
+            localStorage.setItem('ic_session', JSON.stringify(me));
+            window.applyTheme?.(me.theme);
+            renderProfilePictures();
             setSharedPostings(await window.ICPostingApi.mine());
             cacheDatabaseApplications((await window.ICPostingApi.applications()).applications);
             cacheDatabasePlacements((await window.ICPostingApi.placements()).placements);
             cacheDatabaseAttendance((await window.ICPostingApi.attendance()).attendance);
+            await window.ICNotifications.load();
         }
         catch(error){ setSharedPostings([]); showToast(error.message || 'Shared postings could not be loaded.', 'warn'); }
     }
@@ -135,6 +169,7 @@ if(document.body.dataset.ppage) (async function(){
     const nl = document.getElementById('pNotifList');
     if(nl) nl.innerHTML = needs.length ? needs.map(itemRow).join('') : '<div class="px-4 py-6 text-center text-[12px] text-slate-400">You are all caught up.</div>';
     document.getElementById('pNotifDot')?.classList.toggle('hidden', !needs.length);
+    if(me.databaseAccount) window.ICNotifications.render();
 
     if(page === 'overview'){
         const all = placed(), interns = all.filter(p => ['Accepted', 'Deployed', 'Hours complete', 'Completed'].includes(p.status));
@@ -171,12 +206,15 @@ if(document.body.dataset.ppage) (async function(){
         const render = () => {
             const posts = myPosts().sort((a, b) => (b.postedAt || '').localeCompare(a.postedAt || ''));
             const sel = posts.find(j => j.id === selected);
-            const ranking = (j) => { const list = applicantsOf(j), internship = isInternshipJob(j);
-                return '<div class="border-t border-slate-200 mt-4 pt-4"><div class="text-[12.5px] font-semibold text-slate-800 mb-1">Candidate ranking</div><div class="text-[11.5px] text-slate-400 mb-3">Sorted by compatibility: 40% course fit + 60% of this posting\'s skills found in the applicant\'s resume. '
+            const ranking = (j) => { const list = applicantsOf(j), internship = isInternshipJob(j), ai = window.ICCore && window.ICCore.aiMatching, state = applicantScoreState.get(j.id) || 'loading';
+                return '<div class="border-t border-slate-200 mt-4 pt-4"><div class="text-[12.5px] font-semibold text-slate-800 mb-1">Candidate ranking</div><div class="text-[11.5px] text-slate-400 mb-3">Ranked by semantic similarity between each applicant\'s skills and this posting\'s required skills (Sentence-BERT). It is not a hiring probability. '
+                  + (state === 'unavailable' ? 'The score service is not available right now, so applicants are listed in the order they applied. ' : '')
                   + (internship ? 'Internship applicants show their self-declared resume.' : 'Job applicants show their self-declared resume and verified OJT entries.') + '</div>'
                   + (list.length ? '<div class="overflow-x-auto"><table class="w-full text-[12.5px]"><tbody class="divide-y divide-slate-100">' + list.map((a, i) => '<tr><td class="py-2.5 pr-3 text-slate-400 font-semibold">#' + (i + 1) + '</td>'
                       + '<td class="py-2.5 pr-3"><div class="font-medium text-slate-900">' + esc(a.who.name) + '</div><div class="text-[10.5px] text-slate-400">' + esc(a.who.program) + ' · applied ' + formatDate(a.app.date) + '</div></td>'
-                      + '<td class="py-2.5 pr-3 w-36"><div class="font-bold text-indigo-700">' + a.match.score + '%</div><div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-indigo-500" style="width:' + a.match.score + '%"></div></div></td>'
+                      + '<td class="py-2.5 pr-3 w-36" title="' + esc(ai ? ai.SCORE_NOTE : '') + '">' + (Number.isFinite(applicantScore(j, a))
+                          ? '<div class="font-bold text-indigo-700">' + ai.percentText(applicantScore(j, a)) + '</div><div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-indigo-500" style="width:' + ai.percentText(applicantScore(j, a)) + '"></div></div>'
+                          : '<div class="text-[11.5px] text-slate-400">' + esc(!a.skills.length ? 'No skills listed' : ai ? ai.badgeText(NaN, state) : 'Score unavailable') + '</div>') + '</td>'
                       + '<td class="py-2.5 pr-3"><div class="flex flex-wrap gap-1">' + a.match.skills.map(([n, ok]) => ok ? '<span class="tag-chip matched"><i class="fa-solid fa-check"></i>' + esc(n) + '</span>' : '<span class="tag-chip gap">' + esc(n) + ' <span class="chip-note">gap</span></span>').join('') + (a.match.courseOk ? '' : '<span class="text-[10.5px] text-amber-600">different course</span>') + '</div></td>'
                       + '<td class="py-2.5 pr-3">' + (internship && (!a.app.databaseApplication || a.status==='Deployed') ? placementBadge(a.status) : jobStatusSelect(a.key, j.id, a.status)) + '</td>'
                       + '<td class="py-2.5 text-right"><button data-resume="' + esc(a.app.databaseApplication ? 'application-' + a.app.id : a.key) + '" data-name="' + esc(a.who.name) + '" data-verified="' + (internship ? '0' : '1') + '" class="' + btn + 'text-sky-600 bg-sky-50 hover:bg-sky-100 whitespace-nowrap">View resume</button></td></tr>').join('') + '</tbody></table></div>'
@@ -193,6 +231,8 @@ if(document.body.dataset.ppage) (async function(){
                     + (j.id === selected ? ranking(j) : '') + '</div>'; }).join('')
                 : '<div class="' + card + ' p-8 text-center text-[12.5px] text-slate-400">No postings yet. Post an internship or a job to start receiving applicants.</div>');
             if(sel && params.get('job')) document.querySelector('.ring-2')?.scrollIntoView({block: 'start'});
+            // Score the open posting's applicants once, then redraw. The state is set synchronously, so this cannot loop.
+            if(sel && !applicantScoreState.has(sel.id)) loadApplicantScores(sel).then(render);
         };
         document.addEventListener('change', async (e) => {
             const s = e.target.closest('select[data-jobstatus]'); if(!s) return;
@@ -215,47 +255,58 @@ if(document.body.dataset.ppage) (async function(){
         const openForm = (id) => {
             const j = id ? allPostings()[id] : {type: 'Internship · Onsite', course: PROGRAM_COURSE[me.program] || 'BSCS', requirements: [], skills: []};
             const [kind, arr] = (j.type || '').split(' · ');
+            const coordinateText = j.coordinates ? j.coordinates.lat + ', ' + j.coordinates.lng : '';
             const opt = (list, v) => list.map(x => '<option' + (x === v ? ' selected' : '') + '>' + x + '</option>').join('');
             const lab = (t, input) => '<label class="block mb-3"><span class="text-[12.5px] font-medium text-slate-600 block mb-1">' + t + '</span>' + input + '</label>';
             showModal(id ? 'Edit posting' : 'New posting', lab('Title', '<input id="psTitle" class="' + field + '" value="' + esc(j.title || '') + '">')
               + '<div class="grid grid-cols-3 gap-2">' + lab('Type', '<select id="psKind" class="' + field + '">' + opt(['Internship', 'Full-time', 'Part-time'], kind) + '</select>') + lab('Setup', '<select id="psArr" class="' + field + '">' + opt(['Onsite', 'Hybrid', 'Remote'], arr) + '</select>') + lab('Course', '<select id="psCourse" class="' + field + '">' + opt([...new Set(Object.values(PROGRAM_COURSE))], j.course) + '</select>') + '</div>'
-              + lab('Location', '<div class="flex items-center gap-2"><input id="psLoc" class="' + field + ' min-w-0 flex-1" placeholder="ex. Imus, Cavite" value="' + esc(j.location || '') + '"><button type="button" id="psUseGps" class="text-[11.5px] font-semibold text-sky-700 border border-sky-200 hover:bg-sky-50 px-2.5 py-2 rounded-md whitespace-nowrap"><i class="fa-solid fa-location-crosshairs mr-1"></i>Use GPS</button></div><input id="psLat" type="hidden" value="' + esc(j.coordinates?.lat ?? '') + '"><input id="psLng" type="hidden" value="' + esc(j.coordinates?.lng ?? '') + '"><span id="psGpsStatus" class="block text-[10.5px] text-slate-400 mt-1">' + (j.coordinates ? 'GPS location saved. Capture again while at the internship site to update it.' : 'Use while at the internship location. Your location is saved with this posting.') + '</span>') + lab('Pay / allowance', '<input id="psPay" class="' + field + '" value="' + esc(j.salary || '') + '">')
+              + lab('Worksite coordinates', '<div class="flex flex-wrap items-center gap-2"><input id="psCoords" class="' + field + ' min-w-0 flex-1" placeholder="Latitude, Longitude — e.g. 14.3294, 120.9367" value="' + esc(coordinateText) + '" data-source="' + esc(j.coordinates?.source || 'manual') + '"><button type="button" id="psUseGps" class="text-[11.5px] font-semibold text-sky-700 border border-sky-200 hover:bg-sky-50 px-2.5 py-2 rounded-md whitespace-nowrap"><i class="fa-solid fa-location-crosshairs mr-1"></i>Use current location</button></div><span id="psGpsStatus" role="status" class="block text-[10.5px] text-slate-500 mt-1">Paste the actual worksite coordinates. Optional for remote postings. GPS uses this device’s location and may be approximate.</span>')
+              + '<div class="text-[11.5px] text-slate-500 -mt-1 mb-3"><a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer" class="font-medium text-sky-600 hover:underline">Find coordinates on Google Maps <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></a><p class="mt-1">Optional: right-click the worksite, click the coordinates to copy, then paste them here. You can use coordinates from another source.</p></div>'
+              + lab('Address / landmark (optional)', '<input id="psLoc" class="' + field + '" placeholder="e.g. Building, street, city" value="' + esc(j.location === coordinateText || j.location === 'Remote' ? '' : (j.location || '')) + '">') + lab('Pay / allowance', '<input id="psPay" class="' + field + '" value="' + esc(j.salary || '') + '">')
               + lab('Description', '<textarea id="psDesc" rows="3" class="' + field + '">' + esc(j.description || '') + '</textarea>') + lab('Requirements (one per line)', '<textarea id="psReq" rows="3" class="' + field + '">' + esc((j.requirements || []).join('\n')) + '</textarea>')
               + lab('Skills to match (comma separated)', '<input id="psSkills" class="' + field + '" placeholder="ex. SQL, Python, Communication" value="' + esc((j.skills || []).map(x => x[0]).join(', ')) + '">')
               + lab('Application deadline', '<input id="psDeadline" type="date" class="' + field + '" value="' + esc(j.deadlineISO || '') + '">')
               + '<div class="flex justify-end gap-2.5 mt-2"><button data-pclose class="text-[12.5px] font-medium text-slate-500 px-3.5 py-2">Cancel</button><button data-post="save" data-id="' + esc(id || '') + '" class="text-[12.5px] font-semibold text-white bg-sky-600 hover:bg-sky-700 px-4 py-2 rounded-md">' + (id ? 'Save' : 'Post') + '</button></div>');
         };
+        document.addEventListener('input', e => {
+            if(e.target.id === 'psCoords'){
+                e.target.dataset.source = 'manual';
+                document.getElementById('psGpsStatus').textContent = 'Coordinates entered manually. Confirm they identify the actual worksite.';
+            }
+        });
         document.addEventListener('click', async (e) => {
             const gpsButton = e.target.closest('#psUseGps');
             if(gpsButton){
                 if(!navigator.geolocation) return showToast('Location access is not available in this browser.', 'warn');
+                const beforeCapture = document.getElementById('psCoords').value;
                 gpsButton.disabled = true;
                 gpsButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>Getting GPS';
                 navigator.geolocation.getCurrentPosition(position => {
                     if(!gpsButton.isConnected) return;
-                    const latInput = document.getElementById('psLat'), lngInput = document.getElementById('psLng');
-                    if(!latInput || !lngInput) return;
+                    const coordinatesInput = document.getElementById('psCoords');
+                    if(!coordinatesInput || coordinatesInput.value !== beforeCapture) { gpsButton.disabled = false; gpsButton.textContent = 'Use current location'; return; }
                     const lat = position.coords.latitude, lng = position.coords.longitude;
-                    latInput.value = lat.toFixed(6);
-                    lngInput.value = lng.toFixed(6);
+                    coordinatesInput.value = lat.toFixed(6) + ', ' + lng.toFixed(6);
+                    coordinatesInput.dataset.source = 'browser-gps';
                     const status = document.getElementById('psGpsStatus');
-                    if(status) status.textContent = 'GPS captured: ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
+                    const accuracy = Number(position.coords.accuracy);
+                    if(status) status.textContent = 'Current location captured' + (Number.isFinite(accuracy) ? ' · estimated accuracy ±' + Math.ceil(accuracy) + ' m' : '') + '. Confirm this is the actual worksite before saving.';
                     gpsButton.disabled = false;
-                    gpsButton.innerHTML = '<i class="fa-solid fa-location-crosshairs mr-1"></i>Use GPS';
-                    showToast('Posting location captured. Add the place name above before saving.', 'success');
+                    gpsButton.innerHTML = '<i class="fa-solid fa-location-crosshairs mr-1"></i>Use current location';
+                    showToast('Current location captured. Confirm it matches the worksite; desktop location may be approximate.', 'info');
                 }, error => {
                     if(!gpsButton.isConnected) return;
                     const message = error.code === 1 ? 'Allow location access to capture the posting site.' : 'Could not get the location. Try again while at the internship site.';
                     gpsButton.disabled = false;
-                    gpsButton.innerHTML = '<i class="fa-solid fa-location-crosshairs mr-1"></i>Use GPS';
+                    gpsButton.innerHTML = '<i class="fa-solid fa-location-crosshairs mr-1"></i>Use current location';
                     showToast(message, 'warn');
-                }, {enableHighAccuracy: false, maximumAge: 0, timeout: 15000});
+                }, {enableHighAccuracy: true, maximumAge: 0, timeout: 15000});
                 return;
             }
             const b = e.target.closest('[data-post]'); if(!b) return;
             const id = b.dataset.id, act = b.dataset.post;
             if(act === 'new' || act === 'edit') return openForm(act === 'edit' ? id : '');
-            if(act === 'view'){ selected = selected === id ? '' : id; return render(); }
+            if(act === 'view'){ selected = selected === id ? '' : id; applicantScoreState.delete(id); return render(); }
             const all = getJSON(POSTINGS_KEY, {}), cur = allPostings()[id] || {};
             if(act === 'toggle'){
                 if(cur.status !== 'closed' && !await askConfirm('Close "' + cur.title + '"? Students will no longer see it.')) return;
@@ -271,11 +322,15 @@ if(document.body.dataset.ppage) (async function(){
             }
             if(act === 'save'){
                 const v = (x) => document.getElementById(x).value.trim(), skills = v('psSkills').split(',').map(x => x.trim()).filter(Boolean);
-                if(!v('psTitle') || !v('psLoc') || !skills.length) return showToast('Add the title, location and at least one skill.', 'warn');
-                const lat = Number(v('psLat')), lng = Number(v('psLng'));
-                const coordinates = v('psLat') !== '' && v('psLng') !== '' && Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? {lat, lng, source: 'browser-gps'} : null;
+                if(!v('psTitle') || !skills.length) return showToast('Add the title and at least one skill.', 'warn');
+                const coordinateInput = document.getElementById('psCoords');
+                const parsed = parsePostingCoordinates(v('psCoords'));
+                if(v('psCoords') && !parsed) return showToast('Enter valid coordinates as latitude, longitude. Latitude must be -90 to 90 and longitude -180 to 180.', 'warn');
+                if(v('psArr') !== 'Remote' && !parsed) return showToast('Add the actual worksite coordinates for an onsite or hybrid posting.', 'warn');
+                const coordinates = parsed ? {...parsed, source:coordinateInput.dataset.source || 'manual'} : null;
+                const location = v('psLoc') || (parsed ? parsed.lat + ', ' + parsed.lng : 'Remote');
                 let key = id || 'post-' + vaultId();
-                all[key] = Object.assign({}, cur, all[key] || {}, {company, title: v('psTitle'), type: v('psKind') + ' · ' + v('psArr'), course: v('psCourse'), location: v('psLoc'), salary: v('psPay'), description: v('psDesc'),
+                all[key] = Object.assign({}, cur, all[key] || {}, {company, title: v('psTitle'), type: v('psKind') + ' · ' + v('psArr'), course: v('psCourse'), location, salary: v('psPay'), description: v('psDesc'),
                     coordinates, requirements: v('psReq').split('\n').map(x => x.trim()).filter(Boolean), skills: skills.map(x => [x]), deadlineISO: v('psDeadline'),
                     deadline: v('psDeadline') ? 'Application deadline: ' + formatDate(v('psDeadline')) : (cur.deadline || ''), status: cur.status || 'open', postedAt: cur.postedAt || todayISO()});
                 if(me.sharedPostings){
@@ -295,13 +350,6 @@ if(document.body.dataset.ppage) (async function(){
             }
             if(!me.sharedPostings) localStorage.setItem(POSTINGS_KEY, JSON.stringify(all));
             render();
-        });
-        document.addEventListener('input', e => {
-            if(e.target.id !== 'psLoc') return;
-            const lat = document.getElementById('psLat'), lng = document.getElementById('psLng'), status = document.getElementById('psGpsStatus');
-            if(lat) lat.value = '';
-            if(lng) lng.value = '';
-            if(status) status.textContent = 'Location changed. Capture GPS again to update its coordinates.';
         });
         render();
     }

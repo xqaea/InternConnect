@@ -2,8 +2,8 @@ function pendingCard(u){
     const isStudent = u.role === 'student';
     const title = isStudent ? u.name : (u.company || u.name);
     const initials = (title || '?').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
-    const avatar = isStudent
-        ? '<div class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 text-[12px] font-semibold flex items-center justify-center">' + esc(initials) + '</div>'
+    const avatar = (isStudent || u.avatar)
+        ? '<div class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 text-[12px] font-semibold flex items-center justify-center">' + profilePictureContent(u) + '</div>'
         : '<div class="w-9 h-9 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center"><i class="fa-solid fa-building"></i></div>';
     const when = u.requestedAt ? 'requested ' + formatDate(u.requestedAt) : 'new sign up';
     const meta = isStudent

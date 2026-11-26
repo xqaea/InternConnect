@@ -20,6 +20,46 @@ def confirmation():
 
 
 class PlacementTests(TestCase):
+    def setUp(self):
+        patcher=patch.object(module,'shared_student_letters',return_value=[])
+        patcher.start();self.addCleanup(patcher.stop)
+    def test_student_letter_list_contains_metadata_without_file_contents(self):
+        cursor=MagicMock()
+        scan=confirmation().endorsement.model_dump()
+        cursor.fetchone.return_value={'endorsement':json.dumps(scan),'acceptance':json.dumps(scan)}
+        with patch.object(module,'database',lambda:database_for(cursor)):
+            result=module.student_documents({'id':2})
+        self.assertEqual(cursor.execute.call_args.args[1],(2,))
+        self.assertEqual([row['kind'] for row in result['documents']],['endorsement','acceptance'])
+        self.assertNotIn('data',result['documents'][0])
+
+    def test_student_can_only_read_their_own_signed_letters(self):
+        cursor=MagicMock()
+        scan=confirmation().endorsement.model_dump()
+        def execute(query,args):
+            self.assertIn('WHERE student_id=%s',query)
+            cursor.fetchone.return_value={'document':json.dumps(scan)} if args==(2,) else None
+        cursor.execute.side_effect=execute
+        with patch.object(module,'database',lambda:database_for(cursor)):
+            response=module.student_document('endorsement',{'id':2})
+            self.assertEqual(json.loads(response.body)['document'],scan)
+            self.assertEqual(response.headers['cache-control'],'no-store')
+            with self.assertRaises(HTTPException) as denied:
+                module.student_document('endorsement',{'id':3})
+            self.assertEqual(denied.exception.status_code,404)
+
+    def test_missing_placement_and_unknown_document_kind(self):
+        cursor=MagicMock();cursor.fetchone.return_value=None
+        with patch.object(module,'database',lambda:database_for(cursor)):
+            self.assertEqual(module.student_documents({'id':2}),{'documents':[]})
+            with self.assertRaises(HTTPException) as missing:
+                module.student_document('acceptance',{'id':2})
+            self.assertEqual(missing.exception.status_code,404)
+        with patch.object(module,'database') as database:
+            with self.assertRaises(HTTPException):
+                module.student_document('schedule',{'id':2})
+            database.assert_not_called()
+
     def run_confirm(self,rows):
         cursor=MagicMock()
         cursor.fetchone.side_effect=rows

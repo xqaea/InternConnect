@@ -89,6 +89,23 @@ CREATE TABLE IF NOT EXISTS student_attendance (
  FOREIGN KEY(student_id) REFERENCES student_accounts(id),
  FOREIGN KEY(reviewed_by) REFERENCES coordinator_accounts(id)
 ) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS attendance_holidays (
+ class_code VARCHAR(100) NOT NULL, holiday_date DATE NOT NULL, name VARCHAR(150) NOT NULL,
+ kind VARCHAR(40) NOT NULL, created_by BIGINT NOT NULL, created_at DATETIME NOT NULL,
+ PRIMARY KEY(class_code,holiday_date), FOREIGN KEY(created_by) REFERENCES coordinator_accounts(id)
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS attendance_absences (
+ student_id BIGINT NOT NULL, work_date DATE NOT NULL, review VARCHAR(20) NOT NULL DEFAULT '',
+ reviewed_by BIGINT NULL, note JSON NULL, created_at DATETIME NOT NULL,
+ PRIMARY KEY(student_id,work_date), FOREIGN KEY(student_id) REFERENCES student_accounts(id),
+ FOREIGN KEY(reviewed_by) REFERENCES coordinator_accounts(id)
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS attendance_attempts (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY, student_id BIGINT NOT NULL, attempted_at DATETIME(6) NOT NULL,
+ action VARCHAR(3) NOT NULL, outcome VARCHAR(10) NOT NULL, reasons VARCHAR(200) NOT NULL DEFAULT '',
+ distance_m INT NULL, accuracy_m DOUBLE NULL, radius_m INT NULL,
+ INDEX attempts_student_time (student_id,attempted_at), FOREIGN KEY(student_id) REFERENCES student_accounts(id)
+) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS classwork_tasks (
  id VARCHAR(64) PRIMARY KEY, class_code VARCHAR(100) NOT NULL, payload JSON NOT NULL,
  created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL,
@@ -102,4 +119,21 @@ CREATE TABLE IF NOT EXISTS narrative_reports (
  PRIMARY KEY(task_id,student_id), FOREIGN KEY(task_id) REFERENCES classwork_tasks(id),
  FOREIGN KEY(student_id) REFERENCES student_accounts(id),
  FOREIGN KEY(reviewed_by) REFERENCES coordinator_accounts(id)
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS notification_receipts (
+ role VARCHAR(20) NOT NULL, account_id BIGINT NOT NULL, event_id CHAR(64) NOT NULL,
+ read_at DATETIME NOT NULL, PRIMARY KEY(role,account_id,event_id)
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS audit_events (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY, class_code VARCHAR(100) NOT NULL,
+ actor_role VARCHAR(20) NOT NULL, actor_id BIGINT NOT NULL, subject_id BIGINT NOT NULL,
+ resource_id VARCHAR(64) NOT NULL, action VARCHAR(200) NOT NULL, status VARCHAR(30) NOT NULL,
+ created_at DATETIME NOT NULL, INDEX audit_batch_id (class_code,id)
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS vault_letters (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY, company_id BIGINT NOT NULL, student_id BIGINT NOT NULL,
+ kind VARCHAR(20) NOT NULL, payload JSON NOT NULL, history JSON NOT NULL,
+ owner_role VARCHAR(20) NOT NULL, owner_id BIGINT NOT NULL, version INT NOT NULL,
+ updated_at DATETIME NOT NULL, UNIQUE KEY student_company_letter(company_id,student_id,kind),
+ FOREIGN KEY(company_id) REFERENCES companies(id), FOREIGN KEY(student_id) REFERENCES student_accounts(id)
 ) ENGINE=InnoDB;
